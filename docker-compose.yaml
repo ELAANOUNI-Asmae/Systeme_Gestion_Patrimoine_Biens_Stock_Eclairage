@@ -23,8 +23,18 @@ services:
       - sonarqube_extensions:/opt/sonarqube/extensions
       - sonarqube_logs:/opt/sonarqube/logs
 
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    container_name: spring_jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_data:/var/jenkins_home
+
 volumes:
   postgres_data:
   sonarqube_data:
   sonarqube_extensions:
   sonarqube_logs:
+  jenkins_data:
