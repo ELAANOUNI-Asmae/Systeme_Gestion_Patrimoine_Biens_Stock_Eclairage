@@ -1,23 +1,40 @@
 pipeline {
-    agent any
+    // On utilise une image Maven pour faire le build, isolée du conteneur Jenkins
+    agent {
+        docker {
+            image 'maven:3.9-eclipse-temurin-21'
+            args '--network sgpbse_default'
+        }
+    }
+
+    environment {
+        SONAR_TOKEN = credentials('sonar-token')
+    }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout Git via SSH') {
             steps {
-                echo 'Code récupéré depuis GitHub'
+                // Utilisation de la clé SSH qu'on a configurée
+                //Celui est un commentaire pour tester le pieline jznkins
+                git credentialsId: 'github-ssh-key',
+                    url: 'git@github.com:ELAANOUNI-Asmae/Syst-me_Gestion_Patrimoine_Biens_Stock_Eclairage',
+                    branch: 'master'
             }
         }
 
-        stage('Build') {
+        stage('Build & Tests avec JaCoCo') {
             steps {
-                sh 'chmod +x mvnw'
-                sh './mvnw clean package -DskipTests'
+                // Compilation et génération du rapport JaCoCo
+                sh 'mvn clean test'
             }
         }
 
-        stage('Test') {
+        stage('SonarQube Analysis') {
             steps {
-                sh './mvnw test'
+                // Envoi du code + rapport JaCoCo à SonarQube
+                withSonarQubeEnv('SonarQube') {
+                    sh "mvn sonar:sonar -Dsonar.login=${SONAR_TOKEN}"
+                }
             }
         }
     }
