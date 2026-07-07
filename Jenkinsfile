@@ -25,8 +25,10 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    // Envoi à SonarQube
-                    sh "mvn sonar:sonar -Dsonar.login=${SONAR_TOKEN}"
+                    // On utilise withCredentials pour cacher le token des logs
+                    withCredentials([string(credentialsId: 'sonar-token', variable: 'TOKEN')]) {
+                    sh "mvn sonar:sonar -Dsonar.login=${TOKEN}"
+                    }
                 }
             }
         }
