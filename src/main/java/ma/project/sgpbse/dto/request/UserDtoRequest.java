@@ -1,4 +1,4 @@
-package dto.request;
+package ma.project.sgpbse.dto.request;
 import jakarta.validation.constraints.*;
 import lombok.*;
 

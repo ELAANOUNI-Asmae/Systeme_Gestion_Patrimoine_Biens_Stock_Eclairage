@@ -1,4 +1,4 @@
-package dto.response;
+package ma.project.sgpbse.dto.response;
 
 import lombok.*;
 
