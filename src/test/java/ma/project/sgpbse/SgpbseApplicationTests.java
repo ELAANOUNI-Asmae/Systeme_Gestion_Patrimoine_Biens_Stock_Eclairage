@@ -10,4 +10,9 @@ class SgpbseApplicationTests {
     void contextLoads() {
     }
 
+    @Test
+    void testUtilisateur(){
+
+    }
+
 }

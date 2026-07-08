@@ -9,7 +9,6 @@ public class SgpbseApplication {
     public static void main(String[] args) {
 
         SpringApplication.run(SgpbseApplication.class, args);
-        //Commentaire pour tester les branches
     }
 
 }
