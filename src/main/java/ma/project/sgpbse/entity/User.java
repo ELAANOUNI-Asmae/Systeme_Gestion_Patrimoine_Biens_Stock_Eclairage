@@ -1,5 +1,7 @@
-package entity;
+package ma.project.sgpbse.entity;
 
+import ma.project.sgpbse.enums.Gender;
+import ma.project.sgpbse.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,5 +21,11 @@ public class User {
     private String email;
     private String hash_pwd;
     private String sault;
-
+    private Role role;
+    private String firstname;
+    private String lastname;
+    private Gender gender;
+    private String tel;
+    private String cin;
 }
+

@@ -1,4 +1,4 @@
-package repository;
+package ma.project.sgpbse.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
