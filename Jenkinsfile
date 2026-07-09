@@ -17,6 +17,7 @@ pipeline {
 
         stage('Build & Tests avec JaCoCo') {
             steps {
+                sh 'chmod +x mvnw'
                 // Exécution directe de Maven sur le conteneur Jenkins
                 sh 'mvn clean test'
             }
@@ -27,7 +28,7 @@ pipeline {
                 withSonarQubeEnv('SonarQube') {
                     // On utilise withCredentials pour cacher le token des logs
                     withCredentials([string(credentialsId: 'sonar-token', variable: 'TOKEN')]) {
-                    sh "mvn sonar:sonar -Dsonar.login=${TOKEN}"
+                    sh "./mvnw sonar:sonar -Dsonar.login=${SONAR_TOKEN}"
                     }
                 }
             }
