@@ -11,6 +11,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @Table(name="user")
+@Getter
 
 public class User {
 
@@ -19,13 +20,18 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String email;
-    private String hash_pwd;
-    private String sault;
-    private Role role;
     private String firstname;
     private String lastname;
     private Gender gender;
-    private String tel;
+    private String phone;
     private String cin;
+    private String hash_pwd;
+    private String sault;
+    private Role role;
+    private boolean connected = false;
+
+    public boolean getConnected() {
+        return this.connected;
+    }
 }
 
