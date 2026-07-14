@@ -12,7 +12,7 @@ import ma.project.sgpbse.enums.Role;
 public class UserProfilDtoResponse {
     private Long id;
     private String email;
-    private String fullName;
+    private String fullname;
     private Gender gender;
     private String phone;
     private String cin;

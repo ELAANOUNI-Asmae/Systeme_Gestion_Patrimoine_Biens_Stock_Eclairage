@@ -5,15 +5,25 @@ import ma.project.sgpbse.dto.request.UserCreationDtoRequest;
 import ma.project.sgpbse.dto.request.UserDtoRequest;
 import ma.project.sgpbse.dto.response.UserDtoResponse;
 import ma.project.sgpbse.dto.response.UserProfilDtoResponse;
+import ma.project.sgpbse.entity.User;
+import ma.project.sgpbse.service.jwt.JwtService;
 import ma.project.sgpbse.service.user.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/sgpbse/user")
 public class UserController {
 
     private final UserService userService;
+
+    @Autowired
+    private JwtService jwtService;
 
     public UserController(UserService userService){
         this.userService = userService;
@@ -21,6 +31,7 @@ public class UserController {
 
     //method 1: create user
     @PostMapping("/create")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<UserDtoResponse> createUser(@RequestBody @Valid UserCreationDtoRequest userCreationDtoRequest){
         return ResponseEntity.ok(userService.createUser(userCreationDtoRequest));
     }
@@ -38,8 +49,9 @@ public class UserController {
     }
 
     //method 4 : login
+
     @PostMapping("/login")
-    public ResponseEntity<UserDtoResponse> login(@RequestBody @Valid UserDtoRequest userDtoRequest){
+    public ResponseEntity<?> login(@RequestBody @Valid UserDtoRequest userDtoRequest) {
         return ResponseEntity.ok(userService.login(userDtoRequest));
     }
 
@@ -54,5 +66,14 @@ public class UserController {
     public ResponseEntity<UserProfilDtoResponse> getProfil(@PathVariable Long user_id){
         return ResponseEntity.ok(userService.getProfil(user_id));
     }
+
+    //method 5 : get all users
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @GetMapping("/all")
+    public ResponseEntity<List<UserProfilDtoResponse>> getAllProfils(){
+        return ResponseEntity.ok(userService.getProfils());
+    }
+
+
 
 }

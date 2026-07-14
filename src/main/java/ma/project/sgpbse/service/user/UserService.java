@@ -1,23 +1,31 @@
 package ma.project.sgpbse.service.user;
 
+import ma.project.sgpbse.service.jwt.JwtService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import jakarta.transaction.Transactional;
 import ma.project.sgpbse.dto.request.UserCreationDtoRequest;
 import ma.project.sgpbse.dto.request.UserDtoRequest;
 import ma.project.sgpbse.dto.response.UserDtoResponse;
 import ma.project.sgpbse.dto.response.UserProfilDtoResponse;
 import ma.project.sgpbse.entity.User;
-import ma.project.sgpbse.exception.UserAlreadyConnectedException;
-import ma.project.sgpbse.exception.UserNotConnectedException;
 import ma.project.sgpbse.exception.UserNotExistException;
 import ma.project.sgpbse.mapper.UserMapper;
 import ma.project.sgpbse.repository.UserRepository;
-import org.springframework.stereotype.Service;
+import ma.project.sgpbse.service.jwt.AuthResponse;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
 public class UserService {
 
     //add dependencies
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private JwtService jwtService;
     private final UserRepository userRepository;
     private final UserMapper userMapper;
 
@@ -28,21 +36,21 @@ public class UserService {
     }
 
     //method 1: create user
+    @Transactional
     public UserDtoResponse createUser(UserCreationDtoRequest userCreationDtoRequest){
         //1.Check if user already exist in our database
         String cin = userCreationDtoRequest.getCin();
-        boolean exist = userRepository.findByCin(cin);
+        User user = userRepository.findByCin(cin);
 
         //throw exception if user existed before
-        if (exist){
-            throw new UserNotExistException("Utilisateur n'existe pas !");
+        if (user!=null){
+            throw new RuntimeException("Utilisateur existe déjà !");
         }
 
-        //2.Get user from dto using mapper
-        User user = userMapper.toEntity(userCreationDtoRequest);
+        String pwd_hash = passwordEncoder.encode(userCreationDtoRequest.getPwd());
 
         //3.save user to the database
-        userRepository.save(user);
+        userRepository.save(userMapper.toEntity(userCreationDtoRequest, pwd_hash));
 
         //4.Return dto on response
         return userMapper.toDto(user);
@@ -50,17 +58,15 @@ public class UserService {
     }
 
     //method 2 : update user
+    @Transactional
     public String updateUser(Long id, UserCreationDtoRequest userCreationDtoRequest){
 
         //1.Check if user exist
-        User user = userRepository.findById(id) == null ?
-                null : userMapper.toEntity(userCreationDtoRequest);
-        if (user == null){
-            throw new UserNotExistException("Utilisateur n'existe pas !");
-        }
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotExistException("Utilisateur n'existe pas !"));
 
         //2.update user if exist
-        user = userMapper.toEntity(userCreationDtoRequest);
+        userMapper.updateEntityFromDto(userCreationDtoRequest, user);
         userRepository.save(user);
 
         //3.return response
@@ -68,6 +74,7 @@ public class UserService {
     }
 
     //method 3: delete user
+    @Transactional
     public Long deleteUser(Long id){
 
         //1.Check if user exist
@@ -84,62 +91,55 @@ public class UserService {
         return id;
     }
 
-    //method 4 : login
-    public UserDtoResponse login(UserDtoRequest userDtoRequest){
+    //method 3: login
+    @Transactional
+    public AuthResponse login(UserDtoRequest userDtoRequest){
 
         //1.Check if user exist
-        User user = userRepository.findByEmail(userDtoRequest.getEmail()) == null ?
-                null : userMapper.toEntity(userDtoRequest);
-
+        User user = userRepository.findByEmail(userDtoRequest.getEmail());
         if (user == null){
             throw new UserNotExistException("Nom utilisateur ou mot de passe incorrecte!");
         }
 
         //2.Check if already connected
-        if (user.getConnected()){
-            throw new UserAlreadyConnectedException("Vous êtes déjà connecté !");
-        }
 
         //3.verify user password by calculating hash with sault
-        boolean valid = VerifyUserPwd.verify(userDtoRequest.getPwd(),
-                user.getHash_pwd(),
-                user.getSault());
+        boolean valid = passwordEncoder.matches(userDtoRequest.getPwd(), user.getHash_pwd());
+
         if (!valid){
             throw new UserNotExistException("Nom utilisateur ou mot de passe incorrecte!");
         }
 
         //4.update connection status
-        user.setConnected(true);
-        userRepository.save(user);
 
-        //5.return response
-        return userMapper.toDto(user);
+        // 3. On génère le token JWT
+        String token = jwtService.genererToken(user.getEmail(), user.getRole().name());
+
+        // 4. On renvoie le token à l'utilisateur sous forme de JSON
+        return new AuthResponse(token);
     }
 
-    //method 3 : log out
+    //method 4 : log out
+    @Transactional
     public UserDtoResponse logout(String email){
 
         //1.Check if user exist
         User user = userRepository.findByEmail(email);
 
-        if (user.equals(null)){
+        if (user == null){
             throw new UserNotExistException("Utilisateur n'existe pas !");
         }
 
         //2.Check if user connected
-        if (!user.getConnected()){
-            throw new UserNotConnectedException("Vous êtes non connecté !");
-        }
 
         //3.update connection status
-        user.setConnected(false);
-        userRepository.save(user);
 
         //3.return response
         return userMapper.toDto(user);
     }
 
-    //method 4 : show profile
+    //method 5 : show profile
+    @Transactional
     public UserProfilDtoResponse getProfil(Long id){
 
         //1.Check if user exist
@@ -150,12 +150,16 @@ public class UserService {
         }
 
         //2.Check if user connected
-        if (!(user).get().getConnected()){
-            throw new UserNotConnectedException("Vous êtes non connecté !");
-        }
 
         //3.return response
         return userMapper.toDtoProfil((User)user.get());
+    }
+
+    //method 6 : Get profils
+    @Transactional
+    public List<UserProfilDtoResponse> getProfils(){
+
+        return userMapper.toDtos(userRepository.findAll());
     }
 
 }
