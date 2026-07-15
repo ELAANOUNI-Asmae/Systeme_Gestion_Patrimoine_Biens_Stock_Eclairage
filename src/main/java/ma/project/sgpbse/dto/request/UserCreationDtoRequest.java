@@ -6,7 +6,6 @@ import ma.project.sgpbse.enums.Gender;
 import ma.project.sgpbse.enums.Role;
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 
@@ -26,9 +25,7 @@ public class UserCreationDtoRequest {
     @NotNull
     private String lastname;
 
-    @NotBlank(message = "Le genre est obligatoire !")
-    @NotNull
-    private String gender;
+    private Gender gender;
 
     @NotBlank(message = "Le n° de téléphone est obligatoire !")
     @NotNull
@@ -55,8 +52,6 @@ public class UserCreationDtoRequest {
     )
     private String pwd;
 
-    @NotBlank(message = "Le rôle est obligatoire !")
-    @NotNull
-    private String role;
+    private Role role;
 
 }
