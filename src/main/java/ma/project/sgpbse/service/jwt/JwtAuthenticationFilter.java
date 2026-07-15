@@ -2,6 +2,10 @@ package ma.project.sgpbse.service.jwt;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+<<<<<<< HEAD
+=======
+import jakarta.servlet.http.Cookie;
+>>>>>>> origin/auth1
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
+<<<<<<< HEAD
         // 1. Extraire l'en-tête "Authorization" de la requête HTTP
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
@@ -54,26 +59,68 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (jwtService.isTokenValide(jwt)) {
 
                     // 6. On crée le "badge d'accès officiel" de Spring avec l'email et son rôle
+=======
+        String jwt = null;
+        final String userEmail;
+        final String userRole;
+
+        // 1. On cherche le token dans les cookies de la requête
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("jwt-token".equals(cookie.getName())) {
+                    jwt = cookie.getValue();
+                    break;
+                }
+            }
+        }
+        // 2. Si pas de cookie trouvé, on passe au filtre suivant
+        if (jwt == null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        try {
+            // 3. Extraction des données (tes méthodes existantes de JwtService)
+            userEmail = jwtService.extractEmail(jwt);
+            userRole = jwtService.extractRole(jwt);
+
+            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+
+                if (jwtService.isTokenValide(jwt)) {
+
+>>>>>>> origin/auth1
                     String formattedRole = userRole.startsWith("ROLE_") ? userRole : "ROLE_" + userRole;
 
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userEmail,
                             null,
+<<<<<<< HEAD
                             List.of(new SimpleGrantedAuthority(formattedRole)) // On s'assure que ça commence par ROLE_
+=======
+                            List.of(new SimpleGrantedAuthority(formattedRole))
+>>>>>>> origin/auth1
                     );
 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
+<<<<<<< HEAD
                     // 7. On enregistre ce badge dans le contexte de sécurité de Spring
+=======
+>>>>>>> origin/auth1
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
         } catch (Exception e) {
+<<<<<<< HEAD
             // Si le token est corrompu ou expiré, on ignore l'authentification
             System.out.println("Erreur de validation du token JWT : " + e.getMessage());
         }
 
         // 8. On laisse la requête continuer son chemin vers le filtre suivant ou vers le Controller
         filterChain.doFilter(request, response);
+=======
+            System.out.println("Erreur de validation du token JWT : " + e.getMessage());
+        }
+
+>>>>>>> origin/auth1
     }
 }

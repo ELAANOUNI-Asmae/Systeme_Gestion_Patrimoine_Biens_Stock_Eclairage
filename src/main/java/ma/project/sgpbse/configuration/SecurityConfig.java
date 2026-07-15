@@ -28,6 +28,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf( csrf -> csrf.disable() )
                 .authorizeHttpRequests( auth -> auth
+<<<<<<< HEAD
                         .requestMatchers("/sgpbse/user/login",
                                 "/api/auth/password/forgot",
                                 "/api/auth/password/reset")
@@ -35,6 +36,13 @@ public class SecurityConfig {
                         .anyRequest()
                         .authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);;
+=======
+                        .requestMatchers("/sgpbse/user/login","/sgpbse/user/logout")
+                        .permitAll()
+                        .anyRequest()
+                        .authenticated())
+                        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);;
+>>>>>>> origin/auth1
 
         return http.build();
     }

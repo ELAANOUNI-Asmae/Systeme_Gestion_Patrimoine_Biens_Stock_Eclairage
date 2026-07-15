@@ -1,15 +1,19 @@
 package ma.project.sgpbse.controller;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import ma.project.sgpbse.dto.request.UserCreationDtoRequest;
 import ma.project.sgpbse.dto.request.UserDtoRequest;
 import ma.project.sgpbse.dto.response.UserDtoResponse;
 import ma.project.sgpbse.dto.response.UserProfilDtoResponse;
 import ma.project.sgpbse.entity.User;
+import ma.project.sgpbse.service.jwt.AuthResponse;
 import ma.project.sgpbse.service.jwt.JwtService;
 import ma.project.sgpbse.service.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -51,14 +55,39 @@ public class UserController {
     //method 4 : login
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody @Valid UserDtoRequest userDtoRequest) {
-        return ResponseEntity.ok(userService.login(userDtoRequest));
+    public ResponseEntity<?> login(@RequestBody @Valid UserDtoRequest userDtoRequest, HttpServletResponse response) {
+
+        AuthResponse authResponse = userService.login(userDtoRequest);
+
+        ResponseCookie cookie = ResponseCookie.from("jwt-token", authResponse.accessToken())
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(86400)
+                .sameSite("Strict")
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body("Connexion réusiite !");
+
     }
 
     //method 3 : log out
     @PostMapping("/logout")
-    public ResponseEntity<UserDtoResponse> logout(@RequestBody String email){
-        return ResponseEntity.ok(userService.logout(email));
+    public ResponseEntity<?> logout(){
+
+        ResponseCookie deleteCookie = ResponseCookie.from("jwt-token", "")
+                .httpOnly(true)
+                .secure(true) // À mettre à false si tu es en local sans HTTPS
+                .path("/")
+                .maxAge(0)    // <--- C'est ça qui force le navigateur à supprimer le cookie immédiatement !
+                .sameSite("Strict")
+                .build();
+        // On renvoie ce cookie dans les en-têtes de la réponse
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
+                .body("Déconnexion réussie !");
     }
 
     //method 4 : show profile
