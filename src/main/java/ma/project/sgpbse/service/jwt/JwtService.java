@@ -36,23 +36,11 @@ public class JwtService {
         return extractClaim(token, Claims::getSubject);
     }
 
-<<<<<<< HEAD
-    // ==========================================
-    // 2. EXTRAIRE LE RÔLE (Le "Claim" personnalisé)
-    // ==========================================
-=======
->>>>>>> origin/auth1
     public String extractRole(String token) {
         Claims claims = extractAllClaims(token);
         return claims.get("role", String.class);
     }
 
-<<<<<<< HEAD
-    // ==========================================
-    // 3. VÉRIFIER SI LE TOKEN EST VALIDE (Non expiré)
-    // ==========================================
-=======
->>>>>>> origin/auth1
     public boolean isTokenValide(String token) {
         // On récupère la date d'expiration et on vérifie si elle est APRÈS la date actuelle
         Date expiration = extractClaim(token, Claims::getExpiration);
