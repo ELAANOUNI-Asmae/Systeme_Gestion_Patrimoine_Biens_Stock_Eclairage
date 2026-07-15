@@ -28,7 +28,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf( csrf -> csrf.disable() )
                 .authorizeHttpRequests( auth -> auth
-                        .requestMatchers("/sgpbse/user/login")
+                        .requestMatchers("/sgpbse/user/login","/sgpbse/user/logout")
                         .permitAll()
                         .anyRequest()
                         .authenticated())
