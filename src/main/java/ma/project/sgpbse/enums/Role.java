@@ -1,8 +1,8 @@
 package ma.project.sgpbse.enums;
 
 public enum Role {
-    ADMIN,
-    AGENT,
-    TECHNICIEN,
-    RESPONSABLE
+    ROLE_ADMIN,
+    ROLE_AGENT,
+    ROLE_TECHNICIEN,
+    ROLE_RESPONSABLE
 }
