@@ -74,12 +74,12 @@ public class PasswordResetService {
 
         User user = userRepository.findByEmail(email);
 
-        // ما نكشفوش واش الإيميل موجود أو لا
+
         if (user == null) {
             return;
         }
 
-        // حذف أي token قديمة ديال نفس المستخدم
+
         tokenRepository.deleteAllByUser(user);
 
         String tokenValue = UUID.randomUUID().toString();
