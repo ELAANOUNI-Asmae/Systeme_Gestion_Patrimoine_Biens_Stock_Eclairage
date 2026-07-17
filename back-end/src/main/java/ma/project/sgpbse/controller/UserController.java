@@ -1,19 +1,13 @@
 package ma.project.sgpbse.controller;
 
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import ma.project.sgpbse.dto.request.UserCreationDtoRequest;
+import lombok.RequiredArgsConstructor;
 import ma.project.sgpbse.dto.request.UserDtoRequest;
 import ma.project.sgpbse.dto.response.UserDtoResponse;
 import ma.project.sgpbse.dto.response.UserProfilDtoResponse;
-import ma.project.sgpbse.entity.User;
-import ma.project.sgpbse.service.jwt.AuthResponse;
 import ma.project.sgpbse.service.jwt.JwtService;
-import ma.project.sgpbse.service.user.UserService;
+import ma.project.sgpbse.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -22,72 +16,29 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/sgpbse/user")
+@RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
-
-    @Autowired
     private JwtService jwtService;
-
-    public UserController(UserService userService){
-        this.userService = userService;
-    }
 
     //method 1: create user
     @PostMapping("/create")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<UserDtoResponse> createUser(@RequestBody @Valid UserCreationDtoRequest userCreationDtoRequest){
-        return ResponseEntity.ok(userService.createUser(userCreationDtoRequest));
+    public ResponseEntity<UserDtoResponse> createUser(@RequestBody @Valid UserDtoRequest userDtoRequest){
+        return ResponseEntity.ok(userService.createUser(userDtoRequest));
     }
 
     //method 2 : update user
     @PutMapping("/update/{user_id}")
-    public ResponseEntity<String> updateUser(@PathVariable Long user_id, @RequestBody @Valid UserCreationDtoRequest userCreationDtoRequest){
-        return ResponseEntity.ok(userService.updateUser(user_id, userCreationDtoRequest));
+    public ResponseEntity<String> updateUser(@PathVariable Long user_id, @RequestBody @Valid UserDtoRequest userDtoRequest){
+        return ResponseEntity.ok(userService.updateUser(user_id, userDtoRequest));
     }
 
     //method 3: delete user
     @DeleteMapping("/delete/{user_id}")
     public ResponseEntity<Long> deleteUser(@PathVariable Long user_id){
         return ResponseEntity.ok(userService.deleteUser(user_id));
-    }
-
-    //method 4 : login
-
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody @Valid UserDtoRequest userDtoRequest, HttpServletResponse response) {
-
-        AuthResponse authResponse = userService.login(userDtoRequest);
-
-        ResponseCookie cookie = ResponseCookie.from("jwt-token", authResponse.accessToken())
-                .httpOnly(true)
-                .secure(true)
-                .path("/")
-                .maxAge(86400)
-                .sameSite("Strict")
-                .build();
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body("Connexion réusiite !");
-
-    }
-
-    //method 3 : log out
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(){
-
-        ResponseCookie deleteCookie = ResponseCookie.from("jwt-token", "")
-                .httpOnly(true)
-                .secure(true) // À mettre à false si tu es en local sans HTTPS
-                .path("/")
-                .maxAge(0)    // <--- C'est ça qui force le navigateur à supprimer le cookie immédiatement !
-                .sameSite("Strict")
-                .build();
-        // On renvoie ce cookie dans les en-têtes de la réponse
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
-                .body("Déconnexion réussie !");
     }
 
     //method 4 : show profile
@@ -102,7 +53,5 @@ public class UserController {
     public ResponseEntity<List<UserProfilDtoResponse>> getAllProfils(){
         return ResponseEntity.ok(userService.getProfils());
     }
-
-
 
 }

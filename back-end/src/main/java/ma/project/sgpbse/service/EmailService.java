@@ -1,4 +1,4 @@
-package ma.project.sgpbse.service.user;
+package ma.project.sgpbse.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;

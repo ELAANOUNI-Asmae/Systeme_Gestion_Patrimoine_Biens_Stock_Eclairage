@@ -1,5 +1,4 @@
 package ma.project.sgpbse.mapper;
-import ma.project.sgpbse.dto.request.UserCreationDtoRequest;
 import ma.project.sgpbse.dto.request.UserDtoRequest;
 import ma.project.sgpbse.dto.response.UserDtoResponse;
 import ma.project.sgpbse.dto.response.UserProfilDtoResponse;
@@ -14,26 +13,22 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 
-    //à faire un hashage + sault plus tard
-    @Mapping(source = "pwd", target = "hash_pwd")
-    User toEntity(UserDtoRequest dto);
-
     @Mapping(source = ".", target = "fullname", qualifiedByName = "getFullName")
     UserProfilDtoResponse toDtoProfil(User user);
 
     @Mapping(source = ".", target ="fullname", qualifiedByName = "getFullName")
     UserDtoResponse toDto(User user);
 
-    default User toEntity(UserCreationDtoRequest userCreationDtoRequest, String pwd_hash){
+    default User toEntity(UserDtoRequest userDtoRequest, String pwd_hash){
         return User.builder()
-                .email(userCreationDtoRequest.getEmail())
-                .firstname(userCreationDtoRequest.getFirstname())
-                .lastname(userCreationDtoRequest.getLastname())
-                .phone(userCreationDtoRequest.getPhone())
-                .cin(userCreationDtoRequest.getCin())
+                .email(userDtoRequest.getEmail())
+                .firstname(userDtoRequest.getFirstname())
+                .lastname(userDtoRequest.getLastname())
+                .phone(userDtoRequest.getPhone())
+                .cin(userDtoRequest.getCin())
                 .hash_pwd(pwd_hash)
-                .role(userCreationDtoRequest.getRole())
-                .gender(userCreationDtoRequest.getGender())
+                .role(userDtoRequest.getRole())
+                .gender(userDtoRequest.getGender())
                 .build();
     }
 
@@ -44,6 +39,6 @@ public interface UserMapper {
 
     List<UserProfilDtoResponse> toDtos(List<User> users);
 
-    void updateEntityFromDto(UserCreationDtoRequest userCreationDtoRequest, @MappingTarget User user);
+    void updateEntityFromDto(UserDtoRequest userDtoRequest, @MappingTarget User user);
 
 }

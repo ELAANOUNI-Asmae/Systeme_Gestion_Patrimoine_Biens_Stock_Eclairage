@@ -29,10 +29,10 @@ public class SecurityConfig {
         http.csrf( csrf -> csrf.disable() )
                 .authorizeHttpRequests( auth -> auth
 
-                        .requestMatchers("/sgpbse/user/login",
-                                "/sgpbse/user/logout",
-                                "/api/auth/password/forgot",
-                                "/api/auth/password/reset")
+                        .requestMatchers("/sgpbse/auth/forgot_password",
+                                "/sgpbse/auth/reset_password",
+                                "/sgpbse/auth/login",
+                                "/sgpbse/auth/logout")
                         .permitAll()
                         .anyRequest()
                         .authenticated())

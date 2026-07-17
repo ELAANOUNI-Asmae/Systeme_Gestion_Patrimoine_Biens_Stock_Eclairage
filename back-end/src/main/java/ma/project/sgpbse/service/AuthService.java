@@ -1,11 +1,16 @@
-package ma.project.sgpbse.service.user;
+package ma.project.sgpbse.service;
 
 import lombok.RequiredArgsConstructor;
 import ma.project.sgpbse.dto.request.ResetPasswordRequest;
+import ma.project.sgpbse.dto.request.AuthDtoRequest;
 import ma.project.sgpbse.entity.PasswordResetToken;
 import ma.project.sgpbse.entity.User;
+import ma.project.sgpbse.exception.UserNotExistException;
 import ma.project.sgpbse.repository.PasswordResetTokenRepository;
 import ma.project.sgpbse.repository.UserRepository;
+import ma.project.sgpbse.service.jwt.AuthResponse;
+import ma.project.sgpbse.service.jwt.JwtService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,13 +19,49 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
-public class PasswordResetService {
+public class AuthService {
 
+    private final JwtService jwtService;
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private static final long TOKEN_VALIDITY_MINUTES = 15;
+
+    //method 3: login
+    @Transactional
+    public AuthResponse login(AuthDtoRequest authDtoRequest){
+
+        //1.Check if user exist
+        User user = userRepository.findByEmail(authDtoRequest.getEmail());
+        if (user == null){
+            throw new UserNotExistException("Nom utilisateur ou mot de passe incorrecte!");
+        }
+
+        //3.verify user password by calculating hash with sault
+        boolean valid = passwordEncoder.matches(authDtoRequest.getPwd(), user.getHash_pwd());
+
+        if (!valid){
+            throw new UserNotExistException("Nom utilisateur ou mot de passe incorrecte!");
+        }
+
+        //4.update connection status
+
+        // 3. On génère le token JWT
+        String token = jwtService.genererToken(user.getEmail(), user.getRole().name());
+
+        // 4. On renvoie le token à l'utilisateur sous forme de JSON
+        return new AuthResponse(token);
+    }
+
+    //method 4 : log out
+    @Transactional
+    public String logout(){
+
+        // à complèter
+        //3.return response
+        return "déconnecté";
+    }
 
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
