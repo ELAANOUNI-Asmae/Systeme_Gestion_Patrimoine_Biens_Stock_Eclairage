@@ -61,9 +61,9 @@ public class UserController {
 
         ResponseCookie cookie = ResponseCookie.from("jwt-token", authResponse.accessToken())
                 .httpOnly(true)
-                .secure(false)
+                .secure(true)
                 .path("/")
-                .maxAge(60)
+                .maxAge(86400)
                 .sameSite("Strict")
                 .build();
 
@@ -79,7 +79,7 @@ public class UserController {
 
         ResponseCookie deleteCookie = ResponseCookie.from("jwt-token", "")
                 .httpOnly(true)
-                .secure(false) // À mettre à false si tu es en local sans HTTPS
+                .secure(true) // À mettre à false si tu es en local sans HTTPS
                 .path("/")
                 .maxAge(0)    // <--- C'est ça qui force le navigateur à supprimer le cookie immédiatement !
                 .sameSite("Strict")
