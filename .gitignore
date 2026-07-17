@@ -1,0 +1,45 @@
+HELP.md
+
+# --- Java & Maven (Back-end) ---
+**/target/
+**/.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# --- NodeJS & JS (Futur Front-end) ---
+**/node_modules/
+**/dist/
+**/build/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- STS (Spring Tool Suite) ---
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# --- IntelliJ IDEA ---
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# --- NetBeans ---
+**/nbproject/private/
+**/nbbuild/
+**/nbdist/
+**/.nb-gradle/
+**/build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# --- VS Code & Environnement ---
+.vscode/
+.env
