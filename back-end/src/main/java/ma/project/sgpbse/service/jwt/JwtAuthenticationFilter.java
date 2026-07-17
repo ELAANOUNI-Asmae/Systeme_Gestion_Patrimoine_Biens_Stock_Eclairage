@@ -70,5 +70,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             System.out.println("Erreur de validation du token JWT : " + e.getMessage());
         }
 
+        filterChain.doFilter(request, response);
     }
 }
