@@ -1,8 +1,8 @@
 package ma.project.sgpbse.dto.response;
 
 import lombok.*;
+import ma.project.sgpbse.entity.Role;
 import ma.project.sgpbse.enums.Gender;
-import ma.project.sgpbse.enums.Role;
 
 @Getter
 @Setter

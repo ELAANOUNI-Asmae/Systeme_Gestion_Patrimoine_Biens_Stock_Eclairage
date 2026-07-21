@@ -28,7 +28,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String jwt = null;
         final String userEmail;
-        final String userRole;
 
         // 1. On cherche le token dans les cookies de la requête
         if (request.getCookies() != null) {
@@ -45,26 +44,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         try {
-            // 3. Extraction des données (tes méthodes existantes de JwtService)
+
+            // Extract Email
             userEmail = jwtService.extractEmail(jwt);
-            userRole = jwtService.extractRole(jwt);
+            //Extract permissions
+            List<String> permissions = jwtService.extractPermissions(jwt);
 
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                if (jwtService.isTokenValide(jwt)) {
+                //Transform each string text of permissions to SimpleGrantedAuthority
+                List<SimpleGrantedAuthority> authorities = permissions.stream()
+                        .map(SimpleGrantedAuthority::new)
+                        .toList();
 
-                    String formattedRole = userRole.startsWith("ROLE_") ? userRole : "ROLE_" + userRole;
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        userEmail,
+                        null,
+                        authorities // Spring Security stocke maintenant toutes les permissions de l'utilisateur !
+                );
 
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userEmail,
-                            null,
-                            List.of(new SimpleGrantedAuthority(formattedRole))
-                    );
-
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                }
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+                System.out.println("Autorités de l'utilisateur : " + SecurityContextHolder.getContext().getAuthentication().getAuthorities());
+                System.out.println(">>> Utilisateur authentifié : " + userEmail);
+                System.out.println(">>> Autorités chargées : " + SecurityContextHolder.getContext().getAuthentication().getAuthorities());
             }
         } catch (Exception e) {
             System.out.println("Erreur de validation du token JWT : " + e.getMessage());

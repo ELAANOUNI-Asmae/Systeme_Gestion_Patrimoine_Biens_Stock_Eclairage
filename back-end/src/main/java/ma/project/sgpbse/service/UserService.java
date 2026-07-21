@@ -1,6 +1,7 @@
 package ma.project.sgpbse.service;
 
 import ma.project.sgpbse.dto.request.UserDtoRequest;
+import ma.project.sgpbse.exception.UserAlreadyExistException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -11,9 +12,7 @@ import ma.project.sgpbse.entity.User;
 import ma.project.sgpbse.exception.UserNotExistException;
 import ma.project.sgpbse.mapper.UserMapper;
 import ma.project.sgpbse.repository.UserRepository;
-
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class UserService {
@@ -38,8 +37,8 @@ public class UserService {
         User user = userRepository.findByCin(cin);
 
         //throw exception if user existed before
-        if (user!=null){
-            throw new RuntimeException("Utilisateur existe déjà !");
+        if (user != null){
+            throw new UserAlreadyExistException("Utilisateur existe déjà !");
         }
 
         String pwd_hash = passwordEncoder.encode(userDtoRequest.getPwd());
@@ -54,7 +53,7 @@ public class UserService {
 
     //method 2 : update user
     @Transactional
-    public String updateUser(Long id, UserDtoRequest userDtoRequest){
+    public UserDtoResponse updateUser(Long id, UserDtoRequest userDtoRequest){
 
         //1.Check if user exist
         User user = userRepository.findById(id)
@@ -65,7 +64,7 @@ public class UserService {
         userRepository.save(user);
 
         //3.return response
-        return "L'utilisateur est bien mis à jour!";
+        return userMapper.toDto(user);
     }
 
     //method 3: delete user
@@ -73,11 +72,9 @@ public class UserService {
     public Long deleteUser(Long id){
 
         //1.Check if user exist
-        Optional<User> user = userRepository.findById(id);
-
-        if (user.equals(Optional.empty())){
-            throw new UserNotExistException("Utilisateur n'existe pas !");
-        }
+        User user = userRepository.findById(id).orElseThrow(
+                () -> new UserNotExistException("Utilisateur n'existe pas !")
+        );
 
         //2.update user if exist
         userRepository.deleteById(id);
@@ -91,16 +88,12 @@ public class UserService {
     public UserProfilDtoResponse getProfil(Long id){
 
         //1.Check if user exist
-        Optional<User> user = userRepository.findById(id);
+        User user = userRepository.findById(id).orElseThrow(
+                () -> new UserNotExistException("Utilisateur n'existe pas !")
+        );
 
-        if (user.equals(Optional.empty())){
-            throw new UserNotExistException("Utilisateur n'existe pas !");
-        }
-
-        //2.Check if user connected
-
-        //3.return response
-        return userMapper.toDtoProfil((User)user.get());
+        //2.return profil
+        return userMapper.toDtoProfil(user);
     }
 
     //method 6 : Get profils

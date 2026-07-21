@@ -4,16 +4,23 @@ import lombok.RequiredArgsConstructor;
 import ma.project.sgpbse.dto.request.ResetPasswordRequest;
 import ma.project.sgpbse.dto.request.AuthDtoRequest;
 import ma.project.sgpbse.entity.PasswordResetToken;
+import ma.project.sgpbse.entity.Permission;
+import ma.project.sgpbse.entity.Role;
 import ma.project.sgpbse.entity.User;
 import ma.project.sgpbse.exception.UserNotExistException;
+import ma.project.sgpbse.exception.UserPwdNotValidException;
 import ma.project.sgpbse.repository.PasswordResetTokenRepository;
 import ma.project.sgpbse.repository.UserRepository;
 import ma.project.sgpbse.service.jwt.AuthResponse;
 import ma.project.sgpbse.service.jwt.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.time.LocalDateTime;
 
@@ -37,18 +44,19 @@ public class AuthService {
         if (user == null){
             throw new UserNotExistException("Nom utilisateur ou mot de passe incorrecte!");
         }
-
         //3.verify user password by calculating hash with sault
         boolean valid = passwordEncoder.matches(authDtoRequest.getPwd(), user.getHash_pwd());
 
         if (!valid){
-            throw new UserNotExistException("Nom utilisateur ou mot de passe incorrecte!");
+            throw new UserPwdNotValidException("Nom utilisateur ou mot de passe incorrecte!");
         }
 
-        //4.update connection status
-
         // 3. On génère le token JWT
-        String token = jwtService.genererToken(user.getEmail(), user.getRole().name());
+        List<String> permissions = new ArrayList<>();
+        for (Permission p : user.getRole().getPermissions()){
+            permissions.add(p.getName());
+        }
+        String token = jwtService.genererToken(user.getEmail(), user.getRole().getName(),permissions);
 
         // 4. On renvoie le token à l'utilisateur sous forme de JSON
         return new AuthResponse(token);
@@ -57,9 +65,6 @@ public class AuthService {
     //method 4 : log out
     @Transactional
     public String logout(){
-
-        // à complèter
-        //3.return response
         return "déconnecté";
     }
 

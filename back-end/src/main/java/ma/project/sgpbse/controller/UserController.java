@@ -24,32 +24,35 @@ public class UserController {
 
     //method 1: create user
     @PostMapping("/create")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('CREATE_USER')")
     public ResponseEntity<UserDtoResponse> createUser(@RequestBody @Valid UserDtoRequest userDtoRequest){
         return ResponseEntity.ok(userService.createUser(userDtoRequest));
     }
 
     //method 2 : update user
     @PutMapping("/update/{user_id}")
-    public ResponseEntity<String> updateUser(@PathVariable Long user_id, @RequestBody @Valid UserDtoRequest userDtoRequest){
+    @PreAuthorize("hasAuthority('UPDATE_USER')")
+    public ResponseEntity<?> updateUser(@PathVariable Long user_id, @RequestBody @Valid UserDtoRequest userDtoRequest){
         return ResponseEntity.ok(userService.updateUser(user_id, userDtoRequest));
     }
 
     //method 3: delete user
     @DeleteMapping("/delete/{user_id}")
+    @PreAuthorize("hasAuthority('DELETE_USER')")
     public ResponseEntity<Long> deleteUser(@PathVariable Long user_id){
         return ResponseEntity.ok(userService.deleteUser(user_id));
     }
 
     //method 4 : show profile
-    @GetMapping("/profile/{user_id}")
+    @GetMapping("/profil/{user_id}")
+    @PreAuthorize("hasAuthority('GET_PROFIL')")
     public ResponseEntity<UserProfilDtoResponse> getProfil(@PathVariable Long user_id){
         return ResponseEntity.ok(userService.getProfil(user_id));
     }
 
     //method 5 : get all users
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @GetMapping("/all")
+    @PreAuthorize("hasAuthority('GET_ALL_PROFILS')")
     public ResponseEntity<List<UserProfilDtoResponse>> getAllProfils(){
         return ResponseEntity.ok(userService.getProfils());
     }
