@@ -30,10 +30,10 @@ public class RoleController {
         return ResponseEntity.ok(roleService.deleteRole(role_id));
     }
 
-    @PutMapping("/update")
+    @PutMapping("/update/{role_id}")
     @PreAuthorize("hasAuthority('UPDATE_ROLE')")
-    public ResponseEntity<?> updateRole(@RequestBody @Valid RoleRequestDto roleRequestDto){
-        return ResponseEntity.ok(roleService.updateRole(roleRequestDto));
+    public ResponseEntity<?> updateRole(@RequestBody @Valid RoleRequestDto roleRequestDto, @PathVariable Long role_id){
+        return ResponseEntity.ok(roleService.updateRole(role_id, roleRequestDto));
     }
 
     @GetMapping("/permissions/{role_id}")

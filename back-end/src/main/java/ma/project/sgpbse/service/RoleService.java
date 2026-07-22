@@ -89,13 +89,12 @@ public class RoleService {
 
     //Method 3: update role
     @Transactional
-    public Long updateRole(RoleRequestDto roleRequestDto){
+    public Long updateRole(Long id, RoleRequestDto roleRequestDto){
 
         //1.Check if role exist
-        Role role = roleRepository.findByName(roleRequestDto.getName());
-        if(role == null) {
-            throw new RoleNotExistException("Role n'existe pas !");
-        }
+        Role role = roleRepository.findById(id).orElseThrow(
+                () -> new RoleNotExistException("Role n'existe pas !")
+        );
 
         //2.update role if exist
         roleMapper.updateEntityFromDto(roleRequestDto, role);
