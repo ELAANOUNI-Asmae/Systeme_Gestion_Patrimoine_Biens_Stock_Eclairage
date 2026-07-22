@@ -108,7 +108,8 @@ public class RoleService {
         }
 
         //5.Update role permissions
-        role.setPermissions(new HashSet<>(newPermissions));
+        role.getPermissions().clear();
+        role.getPermissions().addAll(newPermissions);
 
         //3.return response
         return roleRepository.save(role).getId();

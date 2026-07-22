@@ -9,6 +9,6 @@ import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface RoleMapper {
-    
+
     List<RoleResponseDto> toDtos(List<Role> roles);
 }
