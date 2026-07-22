@@ -28,15 +28,8 @@ function AppRoutes() {
         path="*"
         element={<Navigate to="/login" replace />}
       />
-
-        <Route
-            path="/forgot-password"
-            element={<div>Page mot de passe oublié</div>}
-        />
     </Routes>
-
   )
-
 }
 
 export default AppRoutes

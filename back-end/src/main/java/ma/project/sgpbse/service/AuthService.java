@@ -143,7 +143,7 @@ public class AuthService {
         tokenRepository.save(resetToken);
 
         String resetLink =
-                "http://localhost:4200/reset-password?token="
+                "http://localhost:5173/reset-password?token="
                         + tokenValue;
 
         emailService.sendPasswordResetEmail(

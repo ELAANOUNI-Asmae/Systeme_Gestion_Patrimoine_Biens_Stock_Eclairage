@@ -47,7 +47,7 @@ public class AuthController {
 
         ResponseCookie deleteCookie = ResponseCookie.from("jwt-token", "")
                 .httpOnly(true)
-                .secure(false) // À mettre à false si tu es en local sans HTTPS
+                .secure(false) // À mettre à false si tu es en local sans HTTPS ou bien true pour la production
                 .path("/")
                 .maxAge(0)    // <--- C'est ça qui force le navigateur à supprimer le cookie immédiatement !
                 .sameSite("Strict")
