@@ -9,8 +9,6 @@ import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface RoleMapper {
-
-    void updateEntityFromDto(RoleRequestDto roleRequestDto, @MappingTarget Role role);
-
+    
     List<RoleResponseDto> toDtos(List<Role> roles);
 }

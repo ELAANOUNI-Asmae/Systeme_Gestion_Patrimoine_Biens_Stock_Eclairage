@@ -96,12 +96,22 @@ public class RoleService {
                 () -> new RoleNotExistException("Role n'existe pas !")
         );
 
-        //2.update role if exist
-        roleMapper.updateEntityFromDto(roleRequestDto, role);
-        roleRepository.save(role);
+        //2.update role name
+        role.setName(roleRequestDto.getName());
+
+        //3.get permissions
+        List<Permission> newPermissions = permissionRepository.findAllById(roleRequestDto.getPermission_ids());
+
+        //4.Test if permissions are not empty
+        if (newPermissions.isEmpty()){
+            throw new IllegalArgumentException("Aucune permission valide trouvée pour les IDs fournis.");
+        }
+
+        //5.Update role permissions
+        role.setPermissions(new HashSet<>(newPermissions));
 
         //3.return response
-        return role.getId();
+        return roleRepository.save(role).getId();
     }
 
     //Method 4: get role permissions
