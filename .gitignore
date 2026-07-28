@@ -43,3 +43,6 @@ out/
 # --- VS Code & Environnement ---
 .vscode/
 .env
+# VS Code local history
+.history/
+**/.history/

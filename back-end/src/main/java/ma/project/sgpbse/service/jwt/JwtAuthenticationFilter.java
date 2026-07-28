@@ -22,6 +22,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private JwtService jwtService; // Le service qu'on a créé pour manipuler le JWT
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+
+        return path.equals("/sgpbse/auth/login")
+                || path.equals("/sgpbse/auth/logout")
+                || path.equals("/sgpbse/auth/forgot_password")
+                || path.equals("/sgpbse/auth/reset_password");
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {

@@ -1,5 +1,5 @@
-import LoginForm from '../components/auth/LoginForm'
-import Logo from '../components/common/Logo'
+import LoginForm from '../../components/auth/LoginForm'
+import Logo from '../../components/common/Logo'
 
 function LoginPage() {
   return (
