@@ -1,6 +1,6 @@
 package ma.project.sgpbse.controller;
 
-import ma.project.sgpbse.exception.*;
+import ma.project.sgpbse.exception.user.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;

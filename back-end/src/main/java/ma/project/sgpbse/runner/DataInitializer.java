@@ -1,7 +1,7 @@
 package ma.project.sgpbse.runner;
 
-import ma.project.sgpbse.repository.PermissionRepository;
-import ma.project.sgpbse.entity.Permission;
+import ma.project.sgpbse.repository.user.PermissionRepository;
+import ma.project.sgpbse.entity.user.Permission;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
