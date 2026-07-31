@@ -1,13 +1,20 @@
 export const ROUTES = {
-  // Public routes
-  LOGIN: "/login",
-  FORGOT_PASSWORD: "/forgot-password",
-  RESET_PASSWORD: "/reset-password",
+  LOGIN: "/connexion",
+  FORGOT_PASSWORD: "/mot-de-passe-oublie",
+  RESET_PASSWORD: "/reinitialiser-mot-de-passe",
 
-  // Private routes
-  DASHBOARD: "/dashboard",
-  USERS: "/users",
+  DASHBOARD: "/tableau-de-bord",
+
+  USERS: "/utilisateurs",
+  ADD_USER: "/utilisateurs/ajouter",
+  USER_DETAILS: "/utilisateurs/:id",
+  EDIT_USER: "/utilisateurs/:id/modifier",
+
   ROLES: "/roles",
   BIENS: "/biens",
-  SETTINGS: "/settings",
+  SETTINGS: "/parametres",
+
+  ADD_ROLE: "/roles/ajouter",
+  ROLE_DETAILS: "/roles/:id",
+  EDIT_ROLE: "/roles/:id/modifier",
 } as const;
