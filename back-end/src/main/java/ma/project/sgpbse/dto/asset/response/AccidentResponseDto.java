@@ -14,6 +14,6 @@ public class AccidentResponseDto {
     private String description;
     private Double penalityCost;
     private String driverName;
-    private String vehiculeName;
+    private String vehicleName;
     private List<DocumentResponseDto> documentResponseDtoList;
 }

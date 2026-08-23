@@ -12,7 +12,7 @@ import java.util.List;
 @Mapper(componentModel = "spring", uses = DocumentMapper.class)
 public interface AccidentMapper {
 
-    @Mapping(source = ".", target = "vehiculeName", qualifiedByName = "getVehicleName")
+    @Mapping(source = ".", target = "vehicleName", qualifiedByName = "getVehicleName")
     AccidentResponseDto toDto(Accident accident);
 
     @Named("getVehicleName")
@@ -20,7 +20,6 @@ public interface AccidentMapper {
         return accident.getVehicle().getDesignation();
     }
 
-    @Mapping(target ="rentalStatus" , constant ="PLANNED")
     Accident toEntity(AccidentRequestDto accidentRequestDto);
 
     List<AccidentResponseDto> toDtos(List<Accident> accidentList);

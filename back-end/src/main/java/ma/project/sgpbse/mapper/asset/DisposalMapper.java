@@ -12,7 +12,7 @@ import java.util.List;
 @Mapper(componentModel = "spring", uses = DocumentMapper.class)
 public interface DisposalMapper {
 
-    @Mapping(source = ".", target = "assetName", qualifiedByName = "getAssetName")
+    @Mapping(source = ".", target = "asset_name", qualifiedByName = "getAssetName")
     DisposalResponseDto toDto(Disposal disposal);
 
     @Named("getAssetName")
