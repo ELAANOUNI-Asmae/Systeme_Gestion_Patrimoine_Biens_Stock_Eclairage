@@ -1,30 +1,53 @@
-import { Link } from "react-router-dom";
-import { CheckCircle } from "lucide-react";
+import {
+  CheckCircle,
+} from "lucide-react";
+
+import {
+  Link,
+} from "react-router-dom";
+
+import {
+  useTranslation,
+} from "react-i18next";
+
+import {
+  ROUTES,
+} from "../../constants/routes";
 
 function ResetSuccessCard() {
+  const {
+    t,
+  } = useTranslation();
+
   return (
-    <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
+    <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-lg transition-colors dark:border-slate-700 dark:bg-slate-900">
       <div className="flex flex-col items-center text-center">
         <CheckCircle
           size={70}
           className="mb-5 text-green-500"
         />
 
-        <h1 className="mb-3 text-2xl font-bold text-slate-800">
-          Mot de passe réinitialisé
+        <h1 className="mb-3 text-2xl font-bold text-slate-800 dark:text-white">
+          {t(
+            "auth.reset.successTitle",
+          )}
         </h1>
 
-        <p className="mb-8 text-slate-600">
-          Votre mot de passe a été modifié avec succès. Vous
-          pouvez maintenant vous connecter avec votre nouveau
-          mot de passe.
+        <p className="mb-8 leading-7 text-slate-600 dark:text-slate-400">
+          {t(
+            "auth.reset.successDescription",
+          )}
         </p>
 
         <Link
-          to="/login"
+          to={
+            ROUTES.LOGIN
+          }
           className="w-full rounded-lg bg-orange-500 px-4 py-3 text-center font-semibold text-white transition hover:bg-orange-600"
         >
-          Se connecter
+          {t(
+            "auth.reset.login",
+          )}
         </Link>
       </div>
     </section>

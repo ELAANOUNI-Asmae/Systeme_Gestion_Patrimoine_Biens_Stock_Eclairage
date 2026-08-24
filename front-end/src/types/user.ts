@@ -4,9 +4,14 @@ export type Gender = "HOMME" | "FEMME";
 
 export interface User {
   id: number;
-  email: string;
+
   firstname: string;
   lastname: string;
+
+  firstnameAr: string;
+  lastnameAr: string;
+
+  email: string;
   gender: Gender;
   phone: string;
   cin: string;
@@ -14,9 +19,13 @@ export interface User {
 }
 
 export interface UserFormData {
-  email: string;
   firstname: string;
   lastname: string;
+
+  firstnameAr: string;
+  lastnameAr: string;
+
+  email: string;
   gender: Gender;
   phone: string;
   cin: string;

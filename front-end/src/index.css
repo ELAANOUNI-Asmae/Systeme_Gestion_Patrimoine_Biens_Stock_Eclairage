@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   font-family:
     Inter,
@@ -11,7 +13,8 @@
     sans-serif;
 
   color: #0f172a;
-  background: #f1f5f9;
+  background: #f8fafc;
+
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -23,15 +26,322 @@
 html {
   min-width: 320px;
   min-height: 100%;
+  scroll-behavior: smooth;
 }
 
 body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+
+  background: #f8fafc;
+
+  transition:
+    background-color 250ms ease,
+    color 250ms ease;
+}
+
+html.dark body {
+  background: #0f172a;
+  color: #e2e8f0;
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
+}
+
+/* =========================
+   MOROCCAN ZELLIGE PATTERN
+   ========================= */
+
+/* ========================================
+   MOROCCAN ZELLIGE PATTERN
+   ======================================== */
+
+.moroccan-pattern {
+  position: relative;
+  isolation: isolate;
+}
+
+.moroccan-pattern::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+
+  pointer-events: none;
+
+  opacity: 0.18;
+
+  background-color: transparent;
+
+  background-image:
+    conic-gradient(
+      from 45deg at 50% 50%,
+      transparent 0deg 22.5deg,
+      rgba(15, 118, 110, 0.55) 22.5deg 45deg,
+      transparent 45deg 67.5deg,
+      rgba(217, 119, 6, 0.5) 67.5deg 90deg,
+      transparent 90deg 112.5deg,
+      rgba(37, 99, 235, 0.48) 112.5deg 135deg,
+      transparent 135deg 157.5deg,
+      rgba(15, 118, 110, 0.5) 157.5deg 180deg,
+      transparent 180deg 202.5deg,
+      rgba(217, 119, 6, 0.5) 202.5deg 225deg,
+      transparent 225deg 247.5deg,
+      rgba(37, 99, 235, 0.48) 247.5deg 270deg,
+      transparent 270deg 292.5deg,
+      rgba(15, 118, 110, 0.5) 292.5deg 315deg,
+      transparent 315deg 337.5deg,
+      rgba(217, 119, 6, 0.5) 337.5deg 360deg
+    );
+
+  background-size:
+    58px 58px;
+
+  mask-image:
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      black 35%,
+      black 100%
+    );
+}
+
+[dir="rtl"]
+  .moroccan-pattern::before {
+  mask-image:
+    linear-gradient(
+      -90deg,
+      transparent 0%,
+      black 35%,
+      black 100%
+    );
+}
+
+html.dark
+  .moroccan-pattern::before {
+  opacity: 0.12;
+}
+
+/* =========================
+   SIDEBAR ANIMATION
+   ========================= */
+
+.sidebar-link {
+  position: relative;
+
+  overflow: hidden;
+
+  transition:
+    transform 220ms ease,
+    background-color 220ms ease,
+    color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.sidebar-link:hover {
+  transform: translateX(4px);
+}
+
+[dir="rtl"]
+  .sidebar-link:hover {
+  transform: translateX(-4px);
+}
+
+.sidebar-link-active {
+  background:
+    linear-gradient(
+      135deg,
+      #f97316,
+      #f59e0b
+    );
+
+  color: white;
+
+  box-shadow:
+    0 10px 25px
+      rgba(249, 115, 22, 0.22);
+}
+
+.sidebar-link-active::after {
+  content: "";
+
+  position: absolute;
+
+  inset-inline-start: 0;
+
+  top: 25%;
+
+  width: 4px;
+  height: 50%;
+
+  border-radius: 999px;
+
+  background: white;
+}
+
+.sidebar-link-icon {
+  transition:
+    transform 220ms ease;
+}
+
+.sidebar-link:hover
+  .sidebar-link-icon {
+  transform: scale(1.1);
+}
+
+/* =========================
+   SCROLLBAR
+   ========================= */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+html.dark
+  ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ========================================
+   LEGACY PAGES DARK MODE
+   Makes existing pages compatible
+   without rewriting every component
+   ======================================== */
+
+html.dark .bg-white {
+  background-color: #111827 !important;
+}
+
+html.dark .bg-slate-50 {
+  background-color: #0f172a !important;
+}
+
+html.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+}
+
+html.dark .text-slate-900 {
+  color: #f8fafc !important;
+}
+
+html.dark .text-slate-800 {
+  color: #f1f5f9 !important;
+}
+
+html.dark .text-slate-700 {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+html.dark .text-slate-400 {
+  color: #64748b !important;
+}
+
+html.dark .border-slate-100 {
+  border-color: #1e293b !important;
+}
+
+html.dark .border-slate-200 {
+  border-color: #334155 !important;
+}
+
+html.dark .border-slate-300 {
+  border-color: #475569 !important;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #0f172a !important;
+  border-color: #475569 !important;
+  color: #f8fafc !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+html.dark option {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+html.dark table thead {
+  background-color: #1e293b !important;
+}
+
+html.dark table tbody tr {
+  border-color: #334155 !important;
+}
+
+html.dark table tbody tr:hover {
+  background-color: #1e293b !important;
+}
+
+/* Footer + common layout */
+
+html.dark footer {
+  background-color: #020617 !important;
+  border-color: #1e293b !important;
+  color: #94a3b8 !important;
+}
+
+/* White cards that had inline opacity */
+
+html.dark .bg-white\/95 {
+  background-color: rgba(
+    2,
+    6,
+    23,
+    0.95
+  ) !important;
+}
+
+html.dark .bg-white\/80 {
+  background-color: rgba(
+    15,
+    23,
+    42,
+    0.8
+  ) !important;
+}
+
+/* Neutral shadows in dark theme */
+
+html.dark .shadow-sm,
+html.dark .shadow-md,
+html.dark .shadow-lg,
+html.dark .shadow-xl,
+html.dark .shadow-2xl {
+  --tw-shadow-color:
+    rgba(
+      0,
+      0,
+      0,
+      0.35
+    );
 }

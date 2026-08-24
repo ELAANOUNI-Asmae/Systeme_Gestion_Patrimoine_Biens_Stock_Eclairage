@@ -1,38 +1,57 @@
-import { Link } from "react-router-dom";
-import { CheckCircle } from "lucide-react";
+import {
+  CheckCircle,
+} from "lucide-react";
+
+import {
+  Link,
+} from "react-router-dom";
+
+import {
+  useTranslation,
+} from "react-i18next";
+
+import {
+  ROUTES,
+} from "../../constants/routes";
 
 function SuccessCard() {
-    return (
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
+  const {
+    t,
+  } = useTranslation();
 
-            <div className="flex flex-col items-center text-center">
+  return (
+    <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-lg transition-colors dark:border-slate-700 dark:bg-slate-900">
+      <div className="flex flex-col items-center text-center">
+        <CheckCircle
+          size={70}
+          className="mb-5 text-green-500"
+        />
 
-                <CheckCircle
-                    size={70}
-                    className="mb-5 text-green-500"
-                />
+        <h1 className="mb-3 text-2xl font-bold text-slate-800 dark:text-white">
+          {t(
+            "auth.forgot.successTitle",
+          )}
+        </h1>
 
-                <h1 className="mb-3 text-2xl font-bold text-slate-800">
-                    Email envoyé
-                </h1>
+        <p className="mb-8 leading-7 text-slate-600 dark:text-slate-400">
+          {t(
+            "auth.forgot.successDescription",
+          )}
+        </p>
 
-                <p className="mb-8 text-slate-600">
-                    Si un compte existe avec cette adresse e-mail,
-                    un lien de réinitialisation a été envoyé.
-                    Veuillez vérifier votre boîte de réception.
-                </p>
-
-                <Link
-                    to="/login"
-                    className="w-full rounded-lg bg-orange-500 px-4 py-3 text-center font-semibold text-white transition hover:bg-orange-600"
-                >
-                    Retour à la connexion
-                </Link>
-
-            </div>
-
-        </div>
-    );
+        <Link
+          to={
+            ROUTES.LOGIN
+          }
+          className="w-full rounded-lg bg-orange-500 px-4 py-3 text-center font-semibold text-white transition hover:bg-orange-600"
+        >
+          {t(
+            "auth.forgot.backToLogin",
+          )}
+        </Link>
+      </div>
+    </section>
+  );
 }
 
 export default SuccessCard;

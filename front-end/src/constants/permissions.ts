@@ -1,0 +1,81 @@
+export const PERMISSIONS = {
+  // ===========================
+  // USERS
+  // ===========================
+  CREATE_USER: "CREATE_USER",
+  UPDATE_USER: "UPDATE_USER",
+  DELETE_USER: "DELETE_USER",
+  GET_ALL_USERS: "GET_ALL_USERS",
+  GET_USER_INFOS: "GET_USER_INFOS",
+
+  // ===========================
+  // ROLES
+  // ===========================
+  CREATE_ROLE: "CREATE_ROLE",
+  UPDATE_ROLE: "UPDATE_ROLE",
+  DELETE_ROLE: "DELETE_ROLE",
+  GET_ALL_ROLES: "GET_ALL_ROLES",
+  GET_ROLE_INFOS: "GET_ROLE_INFOS",
+
+  // ===========================
+  // ASSETS
+  // ===========================
+  CREATE_ASSET: "CREATE_ASSET",
+  UPDATE_ASSET: "UPDATE_ASSET",
+  DELETE_ASSET: "DELETE_ASSET",
+  GET_ALL_ASSETS: "GET_ALL_ASSETS",
+  GET_ASSET_INFOS: "GET_ASSET_INFOS",
+  ASSIGN_ASSET: "ASSIGN_ASSET",
+
+  // ===========================
+  // STOCK
+  // ===========================
+  CREATE_ARTICLE: "CREATE_ARTICLE",
+  UPDATE_ARTICLE: "UPDATE_ARTICLE",
+  DELETE_ARTICLE: "DELETE_ARTICLE",
+  GET_ALL_ARTICLES: "GET_ALL_ARTICLES",
+
+  CREATE_STOCK_ENTRY: "CREATE_STOCK_ENTRY",
+  CREATE_STOCK_EXIT: "CREATE_STOCK_EXIT",
+
+  CREATE_SUPPLY_REQUEST: "CREATE_SUPPLY_REQUEST",
+  VALIDATE_SUPPLY_REQUEST: "VALIDATE_SUPPLY_REQUEST",
+  REJECT_SUPPLY_REQUEST: "REJECT_SUPPLY_REQUEST",
+
+  GET_STOCK_HISTORY: "GET_STOCK_HISTORY",
+  GET_STOCK_ALERTS: "GET_STOCK_ALERTS",
+  
+
+  // ===========================
+  // ECLAIRAGE
+  // ===========================
+  CREATE_LIGHT: "CREATE_LIGHT",
+  UPDATE_LIGHT: "UPDATE_LIGHT",
+  DELETE_LIGHT: "DELETE_LIGHT",
+  GET_ALL_LIGHTS: "GET_ALL_LIGHTS",
+
+  REPORT_FAILURE: "REPORT_FAILURE",
+  CREATE_INTERVENTION: "CREATE_INTERVENTION",
+  UPDATE_INTERVENTION: "UPDATE_INTERVENTION",
+
+  // ===========================
+  // REPORTS
+  // ===========================
+  GENERATE_REPORT: "GENERATE_REPORT",
+  EXPORT_PDF: "EXPORT_PDF",
+  EXPORT_EXCEL: "EXPORT_EXCEL",
+  
+
+  // ===========================
+  // SETTINGS / PROFILE
+  // ===========================
+  UPDATE_PROFILE: "UPDATE_PROFILE",
+  CHANGE_PASSWORD: "CHANGE_PASSWORD",
+  MANAGE_SETTINGS: "MANAGE_SETTINGS",
+
+
+
+} as const;
+
+export type Permission =
+  (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

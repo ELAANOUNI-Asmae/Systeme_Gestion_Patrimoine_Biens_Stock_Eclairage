@@ -1,40 +1,108 @@
-import { NavLink } from "react-router-dom";
+import {
+  NavLink,
+} from "react-router-dom";
 
-import { menuItems } from "../../config/menu";
-import { SIDEBAR_ICON_SIZE } from "../../constants/ui";
+import {
+  useTranslation,
+} from "react-i18next";
 
-function Sidebar() {
+import {
+  menuItems,
+} from "../../config/menu";
+
+import {
+  SIDEBAR_ICON_SIZE,
+} from "../../constants/ui";
+
+import {
+  useAuth,
+} from "../../hooks/useAuth";
+
+type SidebarProps = {
+  onNavigate?: () => void;
+};
+
+function Sidebar({
+  onNavigate,
+}: SidebarProps) {
+  const {
+    hasPermission,
+  } = useAuth();
+
+  const {
+    t,
+  } = useTranslation();
+
+  const visibleMenuItems =
+    menuItems.filter(
+      (item) =>
+        !item.permission ||
+        hasPermission(
+          item.permission,
+        ),
+    );
+
   return (
-    <aside className="w-full shrink-0 border-r border-slate-200 bg-white lg:w-64">
-      <nav className="p-4" aria-label="Navigation principale">
-        <ul className="space-y-2">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
+    <aside className="relative h-full w-full shrink-0 overflow-hidden border-e border-slate-200 bg-white transition-colors dark:border-slate-800 dark:bg-slate-950 lg:min-h-[calc(100vh-4.5rem)] lg:w-72">
+      {/* Moroccan decorative top */}
 
-            return (
-              <li key={item.id}>
-                <NavLink
-                  to={item.path}
-                  className={({ isActive }) =>
-                    [
-                      "flex items-center gap-3 rounded-xl px-4 py-3",
-                      "transition-all duration-200",
-                      isActive
-                        ? "bg-orange-100 font-semibold text-orange-700"
-                        : "text-slate-700 hover:bg-orange-50 hover:text-orange-600",
-                    ].join(" ")
+      <div className="moroccan-pattern absolute inset-x-0 top-0 h-20 bg-linear-to-br from-orange-50 via-white to-teal-50 dark:from-orange-950/20 dark:via-slate-950 dark:to-teal-950/20" />
+
+      <nav
+        className="relative z-10 p-4 pt-6"
+        aria-label="Navigation principale"
+      >
+        <ul className="space-y-2">
+          {visibleMenuItems.map(
+            (item) => {
+              const Icon =
+                item.icon;
+
+              return (
+                <li
+                  key={
+                    item.id
                   }
                 >
-                  <Icon
-                    size={SIDEBAR_ICON_SIZE}
-                    aria-hidden="true"
-                  />
+                  <NavLink
+                    to={
+                      item.path
+                    }
+                    onClick={
+                      onNavigate
+                    }
+                    className={({
+                      isActive,
+                    }) =>
+                      [
+                        "sidebar-link flex items-center gap-3 rounded-2xl px-4 py-3.5",
+                        isActive
+                          ? "sidebar-link-active font-semibold"
+                          : "text-slate-600 hover:bg-orange-50 hover:text-orange-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-orange-300",
+                      ].join(
+                        " ",
+                      )
+                    }
+                  >
+                    <span className="sidebar-link-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100/80 dark:bg-slate-800/80">
+                      <Icon
+                        size={
+                          SIDEBAR_ICON_SIZE
+                        }
+                        aria-hidden="true"
+                      />
+                    </span>
 
-                  <span>{item.label}</span>
-                </NavLink>
-              </li>
-            );
-          })}
+                    <span className="truncate">
+                      {t(
+                        item.labelKey,
+                      )}
+                    </span>
+                  </NavLink>
+                </li>
+              );
+            },
+          )}
         </ul>
       </nav>
     </aside>

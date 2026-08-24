@@ -12,14 +12,24 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "axios": "^1.18.1",
+    "exceljs": "^4.4.0",
+    "html2canvas": "^1.4.1",
+    "i18next": "^26.3.6",
+    "jspdf": "^4.2.1",
+    "leaflet": "^1.9.4",
     "lucide-react": "^1.26.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "react-i18next": "^17.0.11",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.18.1",
-    "tailwindcss": "^4.3.3"
+    "recharts": "^3.10.1",
+    "tailwindcss": "^4.3.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
