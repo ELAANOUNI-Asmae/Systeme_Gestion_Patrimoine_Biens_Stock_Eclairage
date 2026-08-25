@@ -3,12 +3,10 @@ package ma.project.sgpbse.service.asset;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import ma.project.sgpbse.dto.asset.request.DocumentRequestDto;
 import ma.project.sgpbse.dto.asset.response.AssetResponseDto;
 import ma.project.sgpbse.dto.asset.response.DocumentResponseDto;
-import ma.project.sgpbse.entity.asset.Asset;
-import ma.project.sgpbse.entity.asset.Document;
-import ma.project.sgpbse.entity.asset.Maintenance;
-import ma.project.sgpbse.entity.asset.Rental;
+import ma.project.sgpbse.entity.asset.*;
 import ma.project.sgpbse.enums.AssetStatus;
 import ma.project.sgpbse.exception.asset.AssetNotExistException;
 import ma.project.sgpbse.mapper.asset.AssetMapper;
@@ -17,6 +15,7 @@ import ma.project.sgpbse.repository.asset.AssetRepository;
 import ma.project.sgpbse.repository.asset.DocumentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Set;
@@ -29,12 +28,9 @@ public class AssetService {
 
     @Autowired
     private final AssetRepository assetRepository;
-    @Autowired
-    private final DocumentRepository documentRepository;
-    @Autowired
-    private final DocumentMapper documentMapper;
-    @Autowired
     private final AssetMapper assetMapper;
+    @Autowired
+    private final DocumentService documentService;
 
 
     @Transactional
@@ -53,8 +49,7 @@ public class AssetService {
     @Transactional
     public Set<DocumentResponseDto> getAllDocuments(Long id) {
         Asset asset = getAssetById(id);
-        Set<Document> documents = asset.getDocuments();
-        return documentMapper.toDtosSet(documents);
+        return documentService.getSetDocumentResponse(asset.getDocuments());
     }
 
     @Transactional
@@ -87,6 +82,32 @@ public class AssetService {
     public void addRentalToAsset(Asset asset, Rental rental){
         asset.getRentalList().add(rental);
         assetRepository.save(asset);
+    }
+
+    @Transactional
+    public void addDocument(Asset asset, Document document){
+        asset.getDocuments().add(document);
+        assetRepository.save(asset);
+    }
+
+    //join document
+    @Transactional
+    public String joinDoc(Long id, MultipartFile file, DocumentRequestDto documentRequestDto){
+
+        //1.check if accident exist
+        Asset asset = getAssetById(id);
+
+        //2.process the doc
+        Document document = documentService.createDocument(documentRequestDto, file);
+
+        //3. linking between doc and accident
+        documentService.addAsset(document, asset);
+
+        asset.getDocuments().add(document);
+        assetRepository.save(asset);
+
+        return "uploaded successfully !";
+
     }
 
 }

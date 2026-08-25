@@ -1,6 +1,4 @@
 package ma.project.sgpbse.entity.asset;
-
-import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import lombok.*;

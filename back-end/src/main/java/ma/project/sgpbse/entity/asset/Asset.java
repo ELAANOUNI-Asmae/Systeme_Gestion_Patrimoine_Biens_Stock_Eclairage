@@ -1,8 +1,6 @@
 package ma.project.sgpbse.entity.asset;
 
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,8 +15,14 @@ import java.util.Set;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+
+@Entity
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "asset_type", discriminatorType = DiscriminatorType.STRING)
 public abstract class Asset {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String designation;
     private AssetStatus assetStatus;
@@ -31,7 +35,7 @@ public abstract class Asset {
     @JoinColumn(name = "disposal_id")
     private Disposal disposal;
 
-    @OneToMany(mappedBy = "asset")
+    @OneToMany(mappedBy = "asset", cascade = CascadeType.ALL)
     private Set<Document> documents;
 
     @OneToMany(mappedBy = "asset")

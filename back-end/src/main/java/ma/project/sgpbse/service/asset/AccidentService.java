@@ -3,8 +3,10 @@ package ma.project.sgpbse.service.asset;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import ma.project.sgpbse.dto.asset.request.AccidentRequestDto;
+import ma.project.sgpbse.dto.asset.request.DocumentRequestDto;
 import ma.project.sgpbse.dto.asset.response.AccidentResponseDto;
 import ma.project.sgpbse.entity.asset.Accident;
+import ma.project.sgpbse.entity.asset.Document;
 import ma.project.sgpbse.entity.asset.Vehicle;
 import ma.project.sgpbse.enums.AssetStatus;
 import ma.project.sgpbse.exception.asset.AssetNotExistException;
@@ -12,6 +14,8 @@ import ma.project.sgpbse.mapper.asset.AccidentMapper;
 import ma.project.sgpbse.repository.asset.AccidentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 
 @AllArgsConstructor
@@ -24,6 +28,8 @@ public class AccidentService {
     private final AccidentMapper accidentMapper;
     @Autowired
     private final VehicleService vehicleService;
+    @Autowired
+    private final DocumentService documentService;
 
     //déclarer accident
     @Transactional
@@ -69,5 +75,33 @@ public class AccidentService {
     public List<AccidentResponseDto> getAllAccidents(){
 
         return accidentMapper.toDtos(accidentRepository.findAll());
+    }
+
+    //join document
+    @Transactional
+    public String joinDoc(Long id, MultipartFile file, DocumentRequestDto documentRequestDto){
+
+        //1.check if accident exist
+        Accident accident = getAccidentById(id);
+
+        //2.process the doc
+        Document document = documentService.createDocument(documentRequestDto, file);
+
+        //3. linking between doc and accident
+        documentService.addAccident(document, accident);
+
+        accident.getDocumentList().add(document);
+        accidentRepository.save(accident);
+
+        return "uploaded successfully !";
+
+    }
+
+    @Transactional
+    public Accident getAccidentById(Long id){
+        Accident accident = accidentRepository.findById(id)
+                .orElseThrow(() -> new AssetNotExistException("Accident with id " + id + " does not exist"));
+
+        return accident;
     }
 }
