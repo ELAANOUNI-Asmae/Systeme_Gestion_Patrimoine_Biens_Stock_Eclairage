@@ -3,11 +3,11 @@ package ma.project.sgpbse.controller.user;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import ma.project.sgpbse.dto.user.request.AuthDtoRequest;
 import ma.project.sgpbse.dto.user.request.ForgotPasswordRequest;
 import ma.project.sgpbse.dto.user.request.ResetPasswordRequest;
-import ma.project.sgpbse.dto.user.request.AuthDtoRequest;
-import ma.project.sgpbse.service.user.AuthService;
 import ma.project.sgpbse.service.jwt.AuthResponse;
+import ma.project.sgpbse.service.user.AuthService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -42,7 +42,7 @@ public class AuthController {
 
     //method 3 : log out
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(){
+    public ResponseEntity<?> logout() {
 
         ResponseCookie deleteCookie = ResponseCookie.from("jwt-token", "")
                 .httpOnly(true)
