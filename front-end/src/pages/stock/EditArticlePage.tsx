@@ -31,125 +31,99 @@ import type {
 } from "../../types/stock";
 
 function EditArticlePage() {
-  const { id } =
-    useParams();
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { t } = useTranslation();
 
-  const navigate =
-    useNavigate();
+  const articleId = Number(id);
 
-  const {
-    t,
-  } = useTranslation();
-
-  const articleId =
-    Number(id);
-
-  const [
-    article,
-    setArticle,
-  ] =
-    useState<
-      StockArticle | null
-    >(null);
+  const [article, setArticle] =
+    useState<StockArticle | null>(
+      null,
+    );
 
   const [
     loadingPage,
     setLoadingPage,
   ] = useState(true);
 
-  const [
-    saving,
-    setSaving,
-  ] = useState(false);
+  const [saving, setSaving] =
+    useState(false);
 
-  const [
-    error,
-    setError,
-  ] = useState("");
+  const [error, setError] =
+    useState("");
 
   useEffect(() => {
-    const loadArticle =
-      async () => {
-        try {
-          if (
-            !Number.isFinite(
-              articleId,
-            )
-          ) {
-            throw new Error(
-              t(
-                "stock.pages.invalidId",
-              ),
-            );
-          }
-
-          const data =
-            await stockService.getArticleById(
-              articleId,
-            );
-
-          setArticle(
-            data,
-          );
-        } catch (
-          caughtError
-        ) {
-          setError(
-            caughtError instanceof
-              Error
-              ? caughtError.message
-              : t(
-                  "stock.pages.notFound",
-                ),
-          );
-        } finally {
-          setLoadingPage(
-            false,
-          );
-        }
-      };
-
-    void loadArticle();
-  }, [
-    articleId,
-    t,
-  ]);
-
-  const handleSubmit =
-    async (
-      data: StockArticleFormData,
-    ) => {
+    const loadArticle = async () => {
       try {
-        setSaving(true);
+        setLoadingPage(true);
         setError("");
 
-        await stockService.updateArticle(
-          articleId,
-          data,
-        );
+        if (
+          !Number.isFinite(
+            articleId,
+          ) ||
+          articleId <= 0
+        ) {
+          throw new Error(
+            t(
+              "stock.pages.invalidId",
+            ),
+          );
+        }
 
-        navigate(
-          ROUTES.STOCK,
-        );
-      } catch (
-        caughtError
-      ) {
+        const data =
+          await stockService.getArticleById(
+            articleId,
+          );
+
+        setArticle(data);
+      } catch (caughtError) {
+        setArticle(null);
         setError(
-          caughtError instanceof
-            Error
+          caughtError instanceof Error
             ? caughtError.message
             : t(
-                "stock.pages.genericError",
+                "stock.pages.notFound",
               ),
         );
       } finally {
-        setSaving(false);
+        setLoadingPage(false);
       }
     };
 
+    void loadArticle();
+  }, [articleId, t]);
+
+  const handleSubmit = async (
+    data: StockArticleFormData,
+  ) => {
+    try {
+      setSaving(true);
+      setError("");
+
+      await stockService.updateArticle(
+        articleId,
+        data,
+      );
+
+      navigate(ROUTES.STOCK);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : t(
+              "stock.pages.genericError",
+            ),
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loadingPage) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+      <div className="p-10 text-center text-slate-500 dark:text-slate-400">
         {t(
           "stock.pages.loading",
         )}
@@ -168,7 +142,6 @@ function EditArticlePage() {
             size={18}
             className="rtl:rotate-180"
           />
-
           {t(
             "stock.pages.back",
           )}
@@ -186,35 +159,28 @@ function EditArticlePage() {
 
   const initialValues:
     StockArticleFormData = {
-      reference:
-        article.reference,
-
+      reference: article.reference,
+      serialNumber:
+        article.serialNumber ?? "",
+      barcode:
+        article.barcode ?? "",
       designation:
         article.designation,
-
       designationAr:
         article.designationAr,
-
-      category:
-        article.category,
-
+      category: article.category,
       categoryAr:
         article.categoryAr,
-
-      quantity:
-        article.quantity,
-
+      quantity: article.quantity,
       minimumQuantity:
         article.minimumQuantity,
-
-      unit:
-        article.unit,
-
-      location:
-        article.location,
-
+      unit: article.unit,
+      location: article.location,
       locationAr:
         article.locationAr,
+      documents: [
+        ...article.documents,
+      ],
     };
 
   return (
@@ -228,7 +194,6 @@ function EditArticlePage() {
             size={18}
             className="rtl:rotate-180"
           />
-
           {t(
             "stock.pages.back",
           )}
@@ -248,22 +213,18 @@ function EditArticlePage() {
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
           {error}
         </div>
       )}
 
       <ArticleForm
-        initialValues={
-          initialValues
-        }
+        initialValues={initialValues}
         submitLabel={t(
           "stock.pages.save",
         )}
         loading={saving}
-        onSubmit={
-          handleSubmit
-        }
+        onSubmit={handleSubmit}
       />
     </section>
   );

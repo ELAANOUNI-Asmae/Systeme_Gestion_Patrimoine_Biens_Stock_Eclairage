@@ -87,6 +87,11 @@ const ar = {
 
     agent: "الموظف",
 
+    publicFailureLink:
+      "التبليغ عن عطل في الإنارة",
+    publicFailureHint:
+      "متاح بدون تسجيل الدخول",
+
     forgot: {
       title: "نسيت كلمة المرور",
       description:
@@ -165,6 +170,52 @@ const ar = {
   },
 
   
+
+
+  documents: {
+    title: "الوثائق",
+    description:
+      "أضف مرفقاً أو وثيقة رسمية.",
+    category: "الفئة",
+    attachment: "مرفق",
+    official: "وثيقة رسمية",
+    name: "اسم الوثيقة",
+    type: "النوع",
+    file: "الملف",
+    chooseFile: "اختيار ملف",
+    noFileSelected:
+      "لم يتم اختيار أي ملف",
+    expirationDate:
+      "تاريخ انتهاء الصلاحية",
+    remindBeforeExpiration:
+      "التذكير قبل انتهاء الصلاحية",
+    daysBefore:
+      "قبل {{count}} يوم",
+    add: "إضافة",
+    empty:
+      "لم تتم إضافة أي وثيقة.",
+    expiresOn:
+      "تنتهي الصلاحية في {{date}}",
+    reminderText:
+      "تذكير قبل {{count}} يوم",
+    delete: "حذف",
+
+    types: {
+      INVOICE: "فاتورة",
+      RECEIPT: "وصل",
+      CONTRACT: "عقد",
+      REGISTRATION: "التسجيل",
+      INSURANCE: "التأمين",
+      CERTIFICATE: "شهادة",
+      DELIVERY_NOTE: "سند التسليم",
+      EXIT_VOUCHER: "إذن الخروج",
+      TECHNICAL_SHEET: "ورقة تقنية",
+      WARRANTY: "ضمان",
+      REPORT: "تقرير",
+      PHOTO: "صورة",
+      OTHER: "أخرى",
+    },
+  },
 
   dashboard: {
     welcome: "مرحباً {{name}}",
@@ -829,6 +880,12 @@ const ar = {
         unit:
           "الوحدة",
 
+        serialNumber:
+          "الرقم التسلسلي",
+
+        barcode:
+          "الرمز الشريطي",
+
         designationFr:
           "التسمية بالفرنسية",
 
@@ -967,10 +1024,16 @@ const ar = {
       documentTypes: {
         INVOICE: "فاتورة",
         RECEIPT: "وصل",
-        DELIVERY_NOTE:
-          "وصل التسليم",
-        EXIT_VOUCHER:
-          "إذن الخروج",
+        CONTRACT: "عقد",
+        REGISTRATION: "البطاقة الرمادية",
+        INSURANCE: "التأمين",
+        CERTIFICATE: "شهادة",
+        DELIVERY_NOTE: "وصل التسليم",
+        EXIT_VOUCHER: "إذن الخروج",
+        TECHNICAL_SHEET: "ورقة تقنية",
+        WARRANTY: "الضمان",
+        REPORT: "تقرير",
+        PHOTO: "صورة",
         OTHER: "أخرى",
       },
       filters: {
@@ -1286,6 +1349,8 @@ const ar = {
 
         information: "معلومات المادة",
         reference: "المرجع",
+        serialNumber: "الرقم التسلسلي",
+        barcode: "الرمز الشريطي",
         category: "الفئة",
         quantity: "الكمية المتوفرة",
         minimumQuantity: "الحد الأدنى",
@@ -1294,6 +1359,18 @@ const ar = {
 
         lowStock: "مخزون منخفض",
         available: "المخزون متوفر",
+
+        documentsTitle: "وثائق المادة",
+        documentsDescription:
+          "الوثائق الرسمية والمرفقات المرتبطة بهذه المادة.",
+        noDocuments: "لا توجد وثائق مرتبطة.",
+        officialDocument: "وثيقة رسمية",
+        attachment: "مرفق",
+        documentType: "النوع",
+        addedOn: "أضيف في",
+        expiresOn: "تنتهي الصلاحية في",
+        notificationBefore:
+          "إشعار قبل {{days}} يوم",
 
         movements: "الحركات",
         totalEntries: "إجمالي الإدخالات",
@@ -1489,6 +1566,62 @@ const ar = {
         search:
           "البحث بالمرجع أو التسمية أو المنطقة أو العنوان...",
         allStatuses: "جميع الحالات",
+      },
+
+
+      publicFailure: {
+        title:
+          "التبليغ عن عطل في الإنارة العمومية",
+        description:
+          "يمكنك التبليغ عن مشكلة في إحدى نقاط الإنارة دون الحاجة إلى تسجيل الدخول.",
+        publicAccess:
+          "ولوج عمومي — لا يتطلب تسجيل الدخول",
+        backToLogin:
+          "دخول الموظفين",
+        choosePointTitle:
+          "تحديد نقطة الإنارة",
+        choosePointDescription:
+          "ابحث عن نقطة الإنارة بالمرجع أو المنطقة أو العنوان ثم قم باختيارها.",
+        search:
+          "البحث عن نقطة إنارة",
+        searchPlaceholder:
+          "المرجع، المنطقة، العنوان...",
+        light:
+          "نقطة الإنارة",
+        chooseLight:
+          "اختر نقطة الإنارة",
+        loading:
+          "جارٍ تحميل نقاط الإنارة...",
+        loadError:
+          "تعذر تحميل نقاط الإنارة.",
+        alreadyReported:
+          "يوجد بالفعل تبليغ عن عطل أو تدخل جارٍ على نقطة الإنارة هذه.",
+        alreadyReportedShort:
+          "عطل مبلغ عنه",
+        failureDescription:
+          "وصف العطل",
+        failurePlaceholder:
+          "صف المشكلة التي لاحظتها: المصباح لا يعمل، وميض، عمود متضرر...",
+        requiredLight:
+          "يرجى اختيار نقطة الإنارة المعنية.",
+        requiredDescription:
+          "يرجى وصف العطل الذي تمت ملاحظته.",
+        submit:
+          "إرسال التبليغ",
+        submitting:
+          "جارٍ إرسال التبليغ...",
+        submitError:
+          "تعذر إرسال التبليغ. يرجى المحاولة مرة أخرى.",
+        successTitle:
+          "تم إرسال التبليغ",
+        successDescription:
+          "شكراً لك. تم تسجيل التبليغ وسيتمكن القسم المعني من معالجته.",
+        reportNumber:
+          "رقم التبليغ",
+        anotherReport:
+          "التبليغ عن عطل آخر",
+        reporter:
+          "تبليغ عمومي",
       },
 
       failureStatuses: {

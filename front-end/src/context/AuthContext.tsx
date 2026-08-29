@@ -14,6 +14,8 @@ import { mockAuthUsers } from "../mock/auth";
 
 import type { Permission } from "../constants/permissions";
 
+
+
 export const AuthContext =
   createContext<AuthContextType>(
     {} as AuthContextType,

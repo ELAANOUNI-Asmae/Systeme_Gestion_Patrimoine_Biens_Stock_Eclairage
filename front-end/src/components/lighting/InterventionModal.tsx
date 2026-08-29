@@ -14,24 +14,31 @@ import {
   useTranslation,
 } from "react-i18next";
 
+import DocumentManager from "../documents/DocumentManager";
+
 import type {
   Failure,
 } from "../../types/lighting";
 
+import type {
+  AppDocument,
+} from "../../types/document";
+
+export type InterventionData = {
+  technician: string;
+  interventionDate: string;
+  description: string;
+  documents?: AppDocument[];
+};
+
 type InterventionModalProps = {
   open: boolean;
-
   failure: Failure | null;
-
   loading?: boolean;
-
   onClose: () => void;
-
-  onSubmit: (data: {
-    technician: string;
-    interventionDate: string;
-    description: string;
-  }) => Promise<void> | void;
+  onSubmit: (
+    data: InterventionData,
+  ) => Promise<void> | void;
 };
 
 function InterventionModal({
@@ -65,6 +72,14 @@ function InterventionModal({
   ] = useState("");
 
   const [
+    documents,
+    setDocuments,
+  ] =
+    useState<AppDocument[]>(
+      [],
+    );
+
+  const [
     error,
     setError,
   ] = useState("");
@@ -72,12 +87,15 @@ function InterventionModal({
   useEffect(() => {
     if (open) {
       setTechnician("");
+
       setInterventionDate(
         new Date()
           .toISOString()
           .slice(0, 10),
       );
+
       setDescription("");
+      setDocuments([]);
       setError("");
     }
   }, [open]);
@@ -131,11 +149,10 @@ function InterventionModal({
     await onSubmit({
       technician:
         technician.trim(),
-
       interventionDate,
-
       description:
         description.trim(),
+      documents,
     });
   };
 
@@ -155,10 +172,8 @@ function InterventionModal({
       <div
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-800"
+        className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-800"
       >
-        {/* Header */}
-
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-5 dark:border-slate-700">
           <div className="flex gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400">
@@ -194,8 +209,6 @@ function InterventionModal({
           </button>
         </div>
 
-        {/* Panne */}
-
         <div className="mx-5 mt-5 rounded-xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-500/20 dark:bg-orange-500/10">
           <p className="text-xs font-semibold uppercase tracking-wide text-orange-600 dark:text-orange-400">
             {t(
@@ -219,14 +232,12 @@ function InterventionModal({
           </p>
         </div>
 
-        {/* Form */}
-
         <form
           onSubmit={handleSubmit}
-          className="p-5"
+          className="space-y-6 p-5"
         >
           {error && (
-            <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
               {error}
             </div>
           )}
@@ -270,9 +281,7 @@ function InterventionModal({
 
               <input
                 type="date"
-                value={
-                  interventionDate
-                }
+                value={interventionDate}
                 disabled={loading}
                 onChange={(event) =>
                   setInterventionDate(
@@ -308,9 +317,12 @@ function InterventionModal({
             </label>
           </div>
 
-          {/* Actions */}
+          <DocumentManager
+            documents={documents}
+            onChange={setDocuments}
+          />
 
-          <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-4 dark:border-slate-700 sm:flex-row sm:justify-end rtl:sm:justify-start">
             <button
               type="button"
               disabled={loading}

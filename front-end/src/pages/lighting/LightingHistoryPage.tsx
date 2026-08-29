@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   CalendarDays,
   CheckCircle2,
+  FileText,
   Search,
   TriangleAlert,
   UserRound,
@@ -14,7 +15,9 @@ import {
   useState,
 } from "react";
 
-import { Link } from "react-router-dom";
+import {
+  Link,
+} from "react-router-dom";
 
 import {
   useTranslation,
@@ -211,8 +214,6 @@ function LightingHistoryPage() {
 
   return (
     <section className="mx-auto max-w-7xl space-y-6">
-      {/* Header */}
-
       <div>
         <Link
           to={ROUTES.LIGHTING}
@@ -248,8 +249,6 @@ function LightingHistoryPage() {
           </p>
         </div>
       </div>
-
-      {/* Statistics */}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
@@ -296,8 +295,6 @@ function LightingHistoryPage() {
           </p>
         </article>
       </div>
-
-      {/* Filters */}
 
       <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800 md:grid-cols-[1fr_240px]">
         <div className="relative">
@@ -356,15 +353,11 @@ function LightingHistoryPage() {
         </select>
       </div>
 
-      {/* Error */}
-
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
           {error}
         </div>
       )}
-
-      {/* Content */}
 
       {loading ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
@@ -392,9 +385,7 @@ function LightingHistoryPage() {
             (failure) => {
               const failureInterventions =
                 interventions.filter(
-                  (
-                    intervention,
-                  ) =>
+                  (intervention) =>
                     intervention.failureId ===
                     failure.id,
                 );
@@ -404,8 +395,6 @@ function LightingHistoryPage() {
                   key={failure.id}
                   className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800"
                 >
-                  {/* Failure */}
-
                   <div className="p-5">
                     <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                       <div className="min-w-0">
@@ -425,9 +414,7 @@ function LightingHistoryPage() {
                               getFailureStatusClassName(
                                 failure.status,
                               ),
-                            ].join(
-                              " ",
-                            )}
+                            ].join(" ")}
                           >
                             {t(
                               `lighting.failureStatuses.${failure.status}`,
@@ -446,6 +433,25 @@ function LightingHistoryPage() {
                             failure.description
                           }
                         </p>
+
+                        {failure.documents.length > 0 && (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {failure.documents.map(
+                              (document) => (
+                                <span
+                                  key={document.id}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-600 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
+                                >
+                                  <FileText
+                                    size={14}
+                                  />
+
+                                  {document.fileName}
+                                </span>
+                              ),
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="shrink-0 space-y-2 text-xs text-slate-500 dark:text-slate-400">
@@ -464,15 +470,16 @@ function LightingHistoryPage() {
                             size={15}
                           />
 
-                          {
-                            failure.reportedBy
-                          }
+                          {failure.reportedBy ===
+                          "PUBLIC"
+                            ? t(
+                                "lighting.publicFailure.reporter",
+                              )
+                            : failure.reportedBy}
                         </p>
                       </div>
                     </div>
                   </div>
-
-                  {/* Interventions */}
 
                   <div className="border-t border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-900/50">
                     <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -504,13 +511,9 @@ function LightingHistoryPage() {
                     ) : (
                       <div className="mt-4 grid gap-3 lg:grid-cols-2">
                         {failureInterventions.map(
-                          (
-                            intervention,
-                          ) => (
+                          (intervention) => (
                             <div
-                              key={
-                                intervention.id
-                              }
+                              key={intervention.id}
                               className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800"
                             >
                               <div className="flex items-start justify-between gap-3">
@@ -552,6 +555,25 @@ function LightingHistoryPage() {
                                   intervention.description
                                 }
                               </p>
+
+                              {intervention.documents.length > 0 && (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {intervention.documents.map(
+                                    (document) => (
+                                      <span
+                                        key={document.id}
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-600 dark:border-slate-600 dark:text-slate-300"
+                                      >
+                                        <FileText
+                                          size={14}
+                                        />
+
+                                        {document.fileName}
+                                      </span>
+                                    ),
+                                  )}
+                                </div>
+                              )}
 
                               <div className="mt-3 space-y-1 text-xs text-slate-500 dark:text-slate-400">
                                 <p>

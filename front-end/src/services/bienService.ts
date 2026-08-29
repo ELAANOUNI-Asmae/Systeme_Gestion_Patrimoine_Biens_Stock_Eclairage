@@ -4,12 +4,15 @@ import {
 
 import type {
   Bien,
-  BienDocument,
   BienFormData,
   RentalOperation,
   SaleOperation,
   ArchiveReason,
 } from "../types/bien";
+
+import type {
+  AppDocument,
+} from "../types/document";
 
 let biens: Bien[] = [
   ...initialMockBiens,
@@ -228,10 +231,10 @@ export const bienService = {
   async addDocument(
     bienId: number,
     document: Omit<
-      BienDocument,
+      AppDocument,
       "id"
     >,
-  ): Promise<BienDocument> {
+  ): Promise<AppDocument>  {
     await delay();
 
     const bien =
@@ -253,7 +256,7 @@ export const bienService = {
           item.documents,
       );
 
-    const newDocument: BienDocument =
+    const newDocument: AppDocument =
       {
         ...document,
 

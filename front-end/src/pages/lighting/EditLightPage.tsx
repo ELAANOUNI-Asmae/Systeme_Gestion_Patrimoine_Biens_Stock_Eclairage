@@ -229,6 +229,10 @@ function EditLightPage() {
 
       power:
         light.power,
+
+      documents: [
+        ...light.documents,
+      ],
     };
 
   return (

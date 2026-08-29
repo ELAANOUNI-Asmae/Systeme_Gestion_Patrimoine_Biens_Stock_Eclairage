@@ -7,12 +7,15 @@ import {
 import type {
   StockArticle,
   StockArticleFormData,
-  StockDocument,
   StockMovement,
   StockMovementType,
   SupplyRequest,
   SupplyRequestStatus,
 } from "../types/stock";
+
+import type {
+  AppDocument,
+} from "../types/document";
 
 let articles: StockArticle[] = [
   ...initialMockArticles,
@@ -30,30 +33,59 @@ const delay = (
   milliseconds = 200,
 ) =>
   new Promise<void>(
-    (resolve) => {
+    (resolve) =>
       setTimeout(
         resolve,
         milliseconds,
-      );
-    },
+      ),
+  );
+
+const normalizeReference = (
+  value: string,
+) =>
+  value
+    .trim()
+    .toUpperCase();
+
+const normalizeSerialNumber = (
+  value?: string,
+) =>
+  value
+    ?.trim()
+    .toUpperCase() || undefined;
+
+const normalizeBarcode = (
+  value?: string,
+) =>
+  value?.trim() || undefined;
+
+const cloneDocuments = (
+  documents: AppDocument[],
+) =>
+  documents.map(
+    (document) => ({
+      ...document,
+    }),
   );
 
 export const stockService = {
-  async getArticles(): Promise<
-    StockArticle[]
-  > {
+  async getArticles() {
     await delay();
 
     return articles.map(
       (article) => ({
         ...article,
+        documents:
+          cloneDocuments(
+            article.documents,
+          ),
       }),
     );
   },
 
   async getArticleById(
     id: number,
-  ): Promise<StockArticle> {
+  ) {
     await delay();
 
     const article =
@@ -70,22 +102,39 @@ export const stockService = {
 
     return {
       ...article,
+      documents:
+        cloneDocuments(
+          article.documents,
+        ),
     };
   },
 
   async createArticle(
     data: StockArticleFormData,
-  ): Promise<StockArticle> {
+  ) {
     await delay();
+
+    const reference =
+      normalizeReference(
+        data.reference,
+      );
+
+    const serialNumber =
+      normalizeSerialNumber(
+        data.serialNumber,
+      );
+
+    const barcode =
+      normalizeBarcode(
+        data.barcode,
+      );
 
     const referenceExists =
       articles.some(
         (article) =>
-          article.reference
-            .toLowerCase() ===
-          data.reference
-            .trim()
-            .toLowerCase(),
+          normalizeReference(
+            article.reference,
+          ) === reference,
       );
 
     if (referenceExists) {
@@ -94,47 +143,53 @@ export const stockService = {
       );
     }
 
+    if (
+      serialNumber &&
+      articles.some(
+        (article) =>
+          normalizeSerialNumber(
+            article.serialNumber,
+          ) === serialNumber,
+      )
+    ) {
+      throw new Error(
+        "Ce numéro de série existe déjà.",
+      );
+    }
+
+    if (
+      barcode &&
+      articles.some(
+        (article) =>
+          normalizeBarcode(
+            article.barcode,
+          ) === barcode,
+      )
+    ) {
+      throw new Error(
+        "Ce code-barres existe déjà.",
+      );
+    }
+
     const newArticle: StockArticle = {
       id:
         Math.max(
           0,
           ...articles.map(
-            (article) =>
-              article.id,
+            (item) => item.id,
           ),
         ) + 1,
 
-      reference:
-        data.reference
-          .trim()
-          .toUpperCase(),
+      ...data,
 
-      designation:
-        data.designation.trim(),
+      reference,
+      serialNumber,
+      barcode,
 
-      designationAr:
-        data.designationAr.trim(),
-
-      category:
-        data.category.trim(),
-
-      categoryAr:
-        data.categoryAr.trim(),
-
-      quantity:
-        data.quantity,
-
-      minimumQuantity:
-        data.minimumQuantity,
-
-      unit:
-        data.unit,
-
-      location:
-        data.location.trim(),
-
-      locationAr:
-        data.locationAr.trim(),
+      documents:
+        cloneDocuments(
+          data.documents ?? [],
+        ),
 
       updatedAt:
         new Date()
@@ -149,100 +204,135 @@ export const stockService = {
 
     return {
       ...newArticle,
+      documents:
+        cloneDocuments(
+          newArticle.documents,
+        ),
     };
   },
 
   async updateArticle(
     id: number,
     data: StockArticleFormData,
-  ): Promise<StockArticle> {
+  ) {
     await delay();
 
-    const articleIndex =
+    const index =
       articles.findIndex(
         (article) =>
           article.id === id,
       );
 
-    if (
-      articleIndex === -1
-    ) {
+    if (index === -1) {
       throw new Error(
         "Article introuvable.",
       );
     }
 
-    const referenceExists =
+    const reference =
+      normalizeReference(
+        data.reference,
+      );
+
+    const serialNumber =
+      normalizeSerialNumber(
+        data.serialNumber,
+      );
+
+    const barcode =
+      normalizeBarcode(
+        data.barcode,
+      );
+
+    const duplicateReference =
       articles.some(
         (article) =>
           article.id !== id &&
-          article.reference
-            .toLowerCase() ===
-            data.reference
-              .trim()
-              .toLowerCase(),
+          normalizeReference(
+            article.reference,
+          ) === reference,
       );
 
-    if (referenceExists) {
+    if (duplicateReference) {
       throw new Error(
         "Cette référence existe déjà.",
       );
     }
 
-    const updatedArticle: StockArticle = {
+    if (
+      serialNumber &&
+      articles.some(
+        (article) =>
+          article.id !== id &&
+          normalizeSerialNumber(
+            article.serialNumber,
+          ) === serialNumber,
+      )
+    ) {
+      throw new Error(
+        "Ce numéro de série existe déjà.",
+      );
+    }
+
+    if (
+      barcode &&
+      articles.some(
+        (article) =>
+          article.id !== id &&
+          normalizeBarcode(
+            article.barcode,
+          ) === barcode,
+      )
+    ) {
+      throw new Error(
+        "Ce code-barres existe déjà.",
+      );
+    }
+
+    const updated: StockArticle = {
+      ...articles[index],
+      ...data,
       id,
-
-      reference:
-        data.reference
-          .trim()
-          .toUpperCase(),
-
-      designation:
-        data.designation.trim(),
-
-      designationAr:
-        data.designationAr.trim(),
-
-      category:
-        data.category.trim(),
-
-      categoryAr:
-        data.categoryAr.trim(),
-
-      quantity:
-        data.quantity,
-
-      minimumQuantity:
-        data.minimumQuantity,
-
-      unit:
-        data.unit,
-
-      location:
-        data.location.trim(),
-
-      locationAr:
-        data.locationAr.trim(),
-
+      reference,
+      serialNumber,
+      barcode,
+      documents:
+        cloneDocuments(
+          data.documents,
+        ),
       updatedAt:
         new Date()
           .toISOString()
           .slice(0, 10),
     };
 
-    articles[
-      articleIndex
-    ] = updatedArticle;
+    articles[index] = updated;
 
     return {
-      ...updatedArticle,
+      ...updated,
+      documents:
+        cloneDocuments(
+          updated.documents,
+        ),
     };
   },
 
   async removeArticle(
     id: number,
-  ): Promise<void> {
+  ) {
     await delay();
+
+    const exists =
+      articles.some(
+        (article) =>
+          article.id === id,
+      );
+
+    if (!exists) {
+      throw new Error(
+        "Article introuvable.",
+      );
+    }
 
     articles =
       articles.filter(
@@ -251,25 +341,23 @@ export const stockService = {
       );
   },
 
-  async getMovements(): Promise<
-    StockMovement[]
-  > {
+  async getMovements() {
     await delay();
 
     return movements.map(
       (movement) => ({
         ...movement,
-
-        documents: [
-          ...movement.documents,
-        ],
+        documents:
+          cloneDocuments(
+            movement.documents,
+          ),
       }),
     );
   },
 
   async getMovementsByArticleId(
     articleId: number,
-  ): Promise<StockMovement[]> {
+  ) {
     await delay();
 
     return movements
@@ -278,41 +366,48 @@ export const stockService = {
           movement.articleId ===
           articleId,
       )
-      .map((movement) => ({
-        ...movement,
-
-        documents: [
-          ...movement.documents,
-        ],
-      }));
+      .map(
+        (movement) => ({
+          ...movement,
+          documents:
+            cloneDocuments(
+              movement.documents,
+            ),
+        }),
+      );
   },
 
   async createMovement(
     data: {
       articleId: number;
-
-      type:
-        StockMovementType;
-
+      type: StockMovementType;
       quantity: number;
-
       reason: string;
-
       supplierOrBeneficiary?: string;
-
       reference?: string;
-
       performedBy: string;
-
       date?: string;
-
-      documents?: Omit<
-        StockDocument,
-        "id"
-      >[];
+      documents?: AppDocument[];
     },
-  ): Promise<StockMovement> {
+  ) {
     await delay();
+
+    if (
+      !Number.isFinite(
+        data.quantity,
+      ) ||
+      data.quantity <= 0
+    ) {
+      throw new Error(
+        "La quantité doit être supérieure à zéro.",
+      );
+    }
+
+    if (!data.reason.trim()) {
+      throw new Error(
+        "Le motif est obligatoire.",
+      );
+    }
 
     const article =
       articles.find(
@@ -328,20 +423,12 @@ export const stockService = {
     }
 
     if (
-      data.quantity <= 0
-    ) {
-      throw new Error(
-        "La quantité doit être supérieure à zéro.",
-      );
-    }
-
-    if (
       data.type === "EXIT" &&
       data.quantity >
         article.quantity
     ) {
       throw new Error(
-        "La quantité demandée dépasse le stock disponible.",
+        "Stock insuffisant.",
       );
     }
 
@@ -357,42 +444,12 @@ export const stockService = {
         .toISOString()
         .slice(0, 10);
 
-    const allDocuments =
-      movements.flatMap(
-        (movement) =>
-          movement.documents,
-      );
-
-    let nextDocumentId =
-      Math.max(
-        0,
-        ...allDocuments.map(
-          (document) =>
-            document.id,
-        ),
-      ) + 1;
-
-    const documents =
-      (
-        data.documents ?? []
-      ).map(
-        (
-          document,
-        ): StockDocument => ({
-          ...document,
-
-          id:
-            nextDocumentId++,
-        }),
-      );
-
     const newMovement: StockMovement = {
       id:
         Math.max(
           0,
           ...movements.map(
-            (movement) =>
-              movement.id,
+            (item) => item.id,
           ),
         ) + 1,
 
@@ -405,38 +462,31 @@ export const stockService = {
       articleDesignationAr:
         article.designationAr,
 
-      type:
-        data.type,
-
-      quantity:
-        data.quantity,
-
-      reason:
-        data.reason.trim(),
+      type: data.type,
+      quantity: data.quantity,
+      reason: data.reason.trim(),
 
       supplierOrBeneficiary:
         data.supplierOrBeneficiary
-          ?.trim() ||
-        undefined,
+          ?.trim() || undefined,
 
       reference:
         data.reference
-          ?.trim() ||
-        undefined,
+          ?.trim() || undefined,
 
       performedBy:
         data.performedBy.trim(),
 
       date:
-        data.date ||
+        data.date ??
         new Date()
           .toISOString()
-          .slice(
-            0,
-            10,
-          ),
+          .slice(0, 10),
 
-      documents,
+      documents:
+        cloneDocuments(
+          data.documents ?? [],
+        ),
     };
 
     movements = [
@@ -446,21 +496,23 @@ export const stockService = {
 
     return {
       ...newMovement,
-
-      documents: [
-        ...newMovement.documents,
-      ],
+      documents:
+        cloneDocuments(
+          newMovement.documents,
+        ),
     };
   },
 
-  async getRequests(): Promise<
-    SupplyRequest[]
-  > {
+  async getRequests() {
     await delay();
 
     return requests.map(
       (request) => ({
         ...request,
+        documents:
+          cloneDocuments(
+            request.documents,
+          ),
       }),
     );
   },
@@ -468,34 +520,42 @@ export const stockService = {
   async createRequest(
     data: {
       articleDesignation: string;
-
       articleDesignationAr?: string;
-
       requestedQuantity: number;
-
       requester: string;
-
       reason: string;
+      documents?: AppDocument[];
     },
-  ): Promise<SupplyRequest> {
+  ) {
     await delay();
 
     if (
-      data.requestedQuantity <=
-      0
+      !Number.isFinite(
+        data.requestedQuantity,
+      ) ||
+      data.requestedQuantity <= 0
     ) {
       throw new Error(
         "La quantité demandée doit être supérieure à zéro.",
       );
     }
 
-    const newRequest: SupplyRequest = {
+    if (
+      !data.articleDesignation.trim() ||
+      !data.requester.trim() ||
+      !data.reason.trim()
+    ) {
+      throw new Error(
+        "Les informations de la demande sont incomplètes.",
+      );
+    }
+
+    const request: SupplyRequest = {
       id:
         Math.max(
           0,
           ...requests.map(
-            (request) =>
-              request.id,
+            (item) => item.id,
           ),
         ) + 1,
 
@@ -504,8 +564,7 @@ export const stockService = {
 
       articleDesignationAr:
         data.articleDesignationAr
-          ?.trim() ||
-        undefined,
+          ?.trim() || undefined,
 
       requestedQuantity:
         data.requestedQuantity,
@@ -519,30 +578,34 @@ export const stockService = {
       requestDate:
         new Date()
           .toISOString()
-          .slice(
-            0,
-            10,
-          ),
+          .slice(0, 10),
 
-      status:
-        "PENDING",
+      status: "PENDING",
+
+      documents:
+        cloneDocuments(
+          data.documents ?? [],
+        ),
     };
 
     requests = [
-      newRequest,
+      request,
       ...requests,
     ];
 
     return {
-      ...newRequest,
+      ...request,
+      documents:
+        cloneDocuments(
+          request.documents,
+        ),
     };
   },
 
   async updateRequestStatus(
     id: number,
-    status:
-      SupplyRequestStatus,
-  ): Promise<SupplyRequest> {
+    status: SupplyRequestStatus,
+  ) {
     await delay();
 
     const request =
@@ -557,11 +620,14 @@ export const stockService = {
       );
     }
 
-    request.status =
-      status;
+    request.status = status;
 
     return {
       ...request,
+      documents:
+        cloneDocuments(
+          request.documents,
+        ),
     };
   },
 };

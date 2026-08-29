@@ -1,5 +1,6 @@
 import {
   Activity,
+  FileText,
   History,
   Lightbulb,
   Plus,
@@ -52,6 +53,10 @@ import type {
   Light,
   LightStatus,
 } from "../../types/lighting";
+
+import type {
+  AppDocument,
+} from "../../types/document";
 
 type StatusFilter =
   LightStatus | "";
@@ -371,7 +376,10 @@ function LightingPage() {
 
   const handleReportFailure =
     async (
-      description: string,
+      data: {
+        description: string;
+        documents?: AppDocument[];
+      },
     ) => {
       if (
         !selectedFailureLight
@@ -388,7 +396,8 @@ function LightingPage() {
             lightId:
               selectedFailureLight.id,
 
-            description,
+            description:
+              data.description,
 
             reportedBy:
               user
@@ -396,6 +405,9 @@ function LightingPage() {
                 : t(
                     "lighting.page.defaultUser",
                   ),
+
+            documents:
+              data.documents,
           },
         );
 
@@ -438,6 +450,7 @@ function LightingPage() {
       technician: string;
       interventionDate: string;
       description: string;
+      documents?: AppDocument[];
     }) => {
       if (
         !selectedInterventionFailure
@@ -462,6 +475,9 @@ function LightingPage() {
 
             description:
               data.description,
+
+            documents:
+              data.documents,
           },
         );
 
@@ -896,6 +912,34 @@ function LightingPage() {
                           }
                         </p>
 
+                        {failure.documents.length >
+                          0 && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {failure.documents.map(
+                              (
+                                document,
+                              ) => (
+                                <span
+                                  key={
+                                    document.id
+                                  }
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-600 dark:border-slate-600 dark:text-slate-300"
+                                >
+                                  <FileText
+                                    size={
+                                      14
+                                    }
+                                  />
+
+                                  {
+                                    document.fileName
+                                  }
+                                </span>
+                              ),
+                            )}
+                          </div>
+                        )}
+
                         <p className="mt-2 text-xs text-slate-400">
                           {t(
                             "lighting.failures.reportedInfo",
@@ -903,7 +947,12 @@ function LightingPage() {
                               date:
                                 failure.reportedAt,
                               user:
-                                failure.reportedBy,
+                                failure.reportedBy ===
+                                "PUBLIC"
+                                  ? t(
+                                      "lighting.publicFailure.reporter",
+                                    )
+                                  : failure.reportedBy,
                             },
                           )}
                         </p>
@@ -1013,6 +1062,34 @@ function LightingPage() {
                             intervention.description
                           }
                         </p>
+
+                        {intervention.documents.length >
+                          0 && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {intervention.documents.map(
+                              (
+                                document,
+                              ) => (
+                                <span
+                                  key={
+                                    document.id
+                                  }
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                                >
+                                  <FileText
+                                    size={
+                                      14
+                                    }
+                                  />
+
+                                  {
+                                    document.fileName
+                                  }
+                                </span>
+                              ),
+                            )}
+                          </div>
+                        )}
 
                         <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                           {t(

@@ -1,10 +1,4 @@
 import {
-  FileText,
-  Plus,
-  Trash2,
-} from "lucide-react";
-
-import {
   useEffect,
   useState,
   type ChangeEvent,
@@ -19,15 +13,18 @@ import {
 } from "../../mock/biens";
 
 import type {
-  BienDocument,
   BienFormData,
-  DocumentType,
 } from "../../types/bien";
+
+import DocumentManager from "../documents/DocumentManager";
 
 type BienFormProps = {
   initialValues?: BienFormData;
+
   submitLabel: string;
+
   loading?: boolean;
+
   onSubmit: (
     data: BienFormData,
   ) => Promise<void> | void;
@@ -54,17 +51,6 @@ const emptyValues: BienFormData = {
   vehicleDetails: {},
 };
 
-const documentTypes: DocumentType[] = [
-  "INVOICE",
-  "RECEIPT",
-  "CONTRACT",
-  "REGISTRATION",
-  "INSURANCE",
-  "CERTIFICATE",
-  "PHOTO",
-  "OTHER",
-];
-
 function BienForm({
   initialValues = emptyValues,
   submitLabel,
@@ -81,22 +67,14 @@ function BienForm({
   const [error, setError] =
     useState("");
 
-  const [documentName, setDocumentName] =
-    useState("");
-
-  const [documentType, setDocumentType] =
-    useState<DocumentType>("INVOICE");
-
-  const [selectedFileName, setSelectedFileName] =
-    useState("");
-
   useEffect(() => {
     setFormData(initialValues);
   }, [initialValues]);
 
   const handleChange = (
     event: ChangeEvent<
-      HTMLInputElement | HTMLSelectElement
+      HTMLInputElement |
+      HTMLSelectElement
     >,
   ) => {
     const { name, value } =
@@ -107,7 +85,8 @@ function BienForm({
         ...previous,
 
         [name]:
-          name === "purchaseValue"
+          name ===
+          "purchaseValue"
             ? Number(value)
             : value,
       }),
@@ -130,17 +109,20 @@ function BienForm({
 
       vehicleDetails:
         type === "VEHICLE"
-          ? previous.vehicleDetails ?? {}
+          ? previous.vehicleDetails ??
+            {}
           : undefined,
 
       machineDetails:
         type === "MACHINE"
-          ? previous.machineDetails ?? {}
+          ? previous.machineDetails ??
+            {}
           : undefined,
 
       realEstateDetails:
         type === "REAL_ESTATE"
-          ? previous.realEstateDetails ?? {}
+          ? previous.realEstateDetails ??
+            {}
           : undefined,
     }));
   };
@@ -154,6 +136,7 @@ function BienForm({
 
       vehicleDetails: {
         ...previous.vehicleDetails,
+
         [field]: value,
       },
     }));
@@ -168,6 +151,7 @@ function BienForm({
 
       machineDetails: {
         ...previous.machineDetails,
+
         [field]: value,
       },
     }));
@@ -182,59 +166,9 @@ function BienForm({
 
       realEstateDetails: {
         ...previous.realEstateDetails,
+
         [field]: value,
       },
-    }));
-  };
-
-  const addDocument = () => {
-    if (
-      !documentName.trim() ||
-      !selectedFileName
-    ) {
-      return;
-    }
-
-    const newDocument: BienDocument = {
-      id: Date.now(),
-
-      name: documentName.trim(),
-
-      type: documentType,
-
-      fileName: selectedFileName,
-
-      uploadDate: new Date()
-        .toISOString()
-        .slice(0, 10),
-    };
-
-    setFormData((previous) => ({
-      ...previous,
-
-      documents: [
-        ...previous.documents,
-        newDocument,
-      ],
-    }));
-
-    setDocumentName("");
-    setDocumentType("INVOICE");
-    setSelectedFileName("");
-  };
-
-  const removeDocument = (
-    documentId: number,
-  ) => {
-    setFormData((previous) => ({
-      ...previous,
-
-      documents:
-        previous.documents.filter(
-          (document) =>
-            document.id !==
-            documentId,
-        ),
     }));
   };
 
@@ -254,13 +188,19 @@ function BienForm({
       setError(
         t("biens.form.required"),
       );
+
       return;
     }
 
-    if (formData.purchaseValue <= 0) {
+    if (
+      formData.purchaseValue <= 0
+    ) {
       setError(
-        t("biens.form.invalidValue"),
+        t(
+          "biens.form.invalidValue",
+        ),
       );
+
       return;
     }
 
@@ -307,12 +247,19 @@ function BienForm({
       <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6">
         <div className="grid gap-5 md:grid-cols-2">
           <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            {t("biens.form.type")} *
+            {t(
+              "biens.form.type",
+            )}{" "}
+            *
 
             <select
               value={formData.type}
-              onChange={handleTypeChange}
-              className={inputClassName}
+              onChange={
+                handleTypeChange
+              }
+              className={
+                inputClassName
+              }
             >
               {assetTypes.map(
                 (type) => (
@@ -341,7 +288,9 @@ function BienForm({
               value={
                 formData.inventoryId
               }
-              onChange={handleChange}
+              onChange={
+                handleChange
+              }
               placeholder="INV-2026-001"
               className={
                 inputClassName
@@ -361,7 +310,9 @@ function BienForm({
               value={
                 formData.designation
               }
-              onChange={handleChange}
+              onChange={
+                handleChange
+              }
               className={
                 inputClassName
               }
@@ -381,7 +332,9 @@ function BienForm({
               value={
                 formData.designationAr
               }
-              onChange={handleChange}
+              onChange={
+                handleChange
+              }
               className={
                 inputClassName
               }
@@ -399,7 +352,9 @@ function BienForm({
               value={
                 formData.assetStatus
               }
-              onChange={handleChange}
+              onChange={
+                handleChange
+              }
               className={
                 inputClassName
               }
@@ -431,7 +386,9 @@ function BienForm({
               value={
                 formData.acquisitionDate
               }
-              onChange={handleChange}
+              onChange={
+                handleChange
+              }
               className={
                 inputClassName
               }
@@ -452,7 +409,9 @@ function BienForm({
               value={
                 formData.purchaseValue
               }
-              onChange={handleChange}
+              onChange={
+                handleChange
+              }
               className={
                 inputClassName
               }
@@ -473,7 +432,9 @@ function BienForm({
               value={
                 formData.assignment
               }
-              onChange={handleChange}
+              onChange={
+                handleChange
+              }
               className={
                 inputClassName
               }
@@ -493,7 +454,9 @@ function BienForm({
               value={
                 formData.assignmentAr
               }
-              onChange={handleChange}
+              onChange={
+                handleChange
+              }
               className={
                 inputClassName
               }
@@ -833,142 +796,22 @@ function BienForm({
         </article>
       )}
 
-      {/* DOCUMENTS */}
+      {/* COMMON DOCUMENT MANAGER */}
 
-      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6">
-        <div className="flex items-center gap-3">
-          <FileText className="text-orange-600 dark:text-orange-400" />
+      <DocumentManager
+        documents={
+          formData.documents
+        }
+        onChange={(documents) =>
+          setFormData(
+            (previous) => ({
+              ...previous,
 
-          <h2 className="font-bold text-slate-900 dark:text-white">
-            {t(
-              "biens.form.documents",
-            )}
-          </h2>
-        </div>
-
-        <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_200px_1fr_auto]">
-          <input
-            type="text"
-            value={documentName}
-            onChange={(event) =>
-              setDocumentName(
-                event.target.value,
-              )
-            }
-            placeholder={t(
-              "biens.form.documentName",
-            )}
-            className={inputClassName}
-          />
-
-          <select
-            value={documentType}
-            onChange={(event) =>
-              setDocumentType(
-                event.target
-                  .value as DocumentType,
-              )
-            }
-            className={inputClassName}
-          >
-            {documentTypes.map(
-              (type) => (
-                <option
-                  key={type}
-                  value={type}
-                >
-                  {t(
-                    `biens.documentTypes.${type}`,
-                  )}
-                </option>
-              ),
-            )}
-          </select>
-
-          <input
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-            onChange={(event) =>
-              setSelectedFileName(
-                event.target
-                  .files?.[0]
-                  ?.name ?? "",
-              )
-            }
-            className="mt-1 block h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-          />
-
-          <button
-            type="button"
-            onClick={addDocument}
-            disabled={
-              !documentName.trim() ||
-              !selectedFileName
-            }
-            className="mt-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-40 dark:bg-orange-600 dark:hover:bg-orange-700"
-          >
-            <Plus size={17} />
-
-            {t(
-              "biens.form.addDocument",
-            )}
-          </button>
-        </div>
-
-        <div className="mt-5 space-y-2">
-          {formData.documents.length ===
-          0 ? (
-            <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500 dark:bg-slate-900 dark:text-slate-400">
-              {t(
-                "biens.form.noDocuments",
-              )}
-            </p>
-          ) : (
-            formData.documents.map(
-              (document) => (
-                <div
-                  key={document.id}
-                  className="flex flex-col justify-between gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700 sm:flex-row sm:items-center"
-                >
-                  <div>
-                    <p className="font-semibold text-slate-800 dark:text-slate-100">
-                      {document.name}
-                    </p>
-
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      {t(
-                        `biens.documentTypes.${document.type}`,
-                      )}
-                      {" · "}
-                      {
-                        document.fileName
-                      }
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      removeDocument(
-                        document.id,
-                      )
-                    }
-                    className="inline-flex items-center gap-2 text-sm font-semibold text-red-600"
-                  >
-                    <Trash2
-                      size={16}
-                    />
-
-                    {t(
-                      "biens.form.removeDocument",
-                    )}
-                  </button>
-                </div>
-              ),
-            )
-          )}
-        </div>
-      </article>
+              documents,
+            }),
+          )
+        }
+      />
 
       <div className="flex justify-end rtl:justify-start">
         <button

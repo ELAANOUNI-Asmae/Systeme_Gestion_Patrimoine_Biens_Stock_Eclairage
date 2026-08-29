@@ -74,6 +74,11 @@ const fr = {
     admin: "Admin",
     agent: "Agent",
 
+    publicFailureLink:
+      "Signaler une panne d’éclairage",
+    publicFailureHint:
+      "Accessible sans connexion",
+
     forgot: {
       title: "Mot de passe oublié",
       description:
@@ -150,6 +155,56 @@ const fr = {
   },
 
   
+
+
+  documents: {
+    title: "Documents",
+    description:
+      "Ajoutez une pièce jointe ou un document officiel.",
+    category: "Catégorie",
+    attachment: "Pièce jointe",
+    official: "Document officiel",
+    name: "Nom du document",
+    type: "Type",
+    file: "Fichier",
+    chooseFile: "Choisir un fichier",
+    noFileSelected:
+      "Aucun fichier sélectionné",
+    expirationDate:
+      "Date d’expiration",
+    remindBeforeExpiration:
+      "Notifier avant l’expiration",
+    daysBefore:
+      "{{count}} jour(s) avant",
+    add: "Ajouter",
+    empty:
+      "Aucun document ajouté.",
+    expiresOn:
+      "Expire le {{date}}",
+    reminderText:
+      "Rappel {{count}} jour(s) avant",
+    delete: "Supprimer",
+
+    types: {
+      INVOICE: "Facture",
+      RECEIPT: "Reçu",
+      CONTRACT: "Contrat",
+      REGISTRATION:
+        "Immatriculation",
+      INSURANCE: "Assurance",
+      CERTIFICATE: "Certificat",
+      DELIVERY_NOTE:
+        "Bon de livraison",
+      EXIT_VOUCHER:
+        "Bon de sortie",
+      TECHNICAL_SHEET:
+        "Fiche technique",
+      WARRANTY: "Garantie",
+      REPORT: "Rapport",
+      PHOTO: "Photo",
+      OTHER: "Autre",
+    },
+  },
 
   dashboard: {
     welcome: "Bonjour {{name}}",
@@ -763,6 +818,12 @@ const fr = {
         unit:
           "Unité",
 
+        serialNumber:
+          "Numéro de série",
+
+        barcode:
+          "Code-barres",
+
         designationFr:
           "Désignation en français",
 
@@ -900,10 +961,16 @@ const fr = {
       documentTypes: {
         INVOICE: "Facture",
         RECEIPT: "Reçu",
-        DELIVERY_NOTE:
-          "Bon de livraison",
-        EXIT_VOUCHER:
-          "Bon de sortie",
+        CONTRACT: "Contrat",
+        REGISTRATION: "Carte grise",
+        INSURANCE: "Assurance",
+        CERTIFICATE: "Certificat",
+        DELIVERY_NOTE: "Bon de livraison",
+        EXIT_VOUCHER: "Bon de sortie",
+        TECHNICAL_SHEET: "Fiche technique",
+        WARRANTY: "Garantie",
+        REPORT: "Rapport",
+        PHOTO: "Photo",
         OTHER: "Autre",
       },
 
@@ -1219,6 +1286,8 @@ const fr = {
 
         information: "Informations de l’article",
         reference: "Référence",
+        serialNumber: "Numéro de série",
+        barcode: "Code-barres",
         category: "Catégorie",
         quantity: "Quantité disponible",
         minimumQuantity: "Seuil minimum",
@@ -1227,6 +1296,18 @@ const fr = {
 
         lowStock: "Stock faible",
         available: "Stock disponible",
+
+        documentsTitle: "Documents de l’article",
+        documentsDescription:
+          "Documents officiels et pièces jointes associés à cet article.",
+        noDocuments: "Aucun document associé.",
+        officialDocument: "Document officiel",
+        attachment: "Pièce jointe",
+        documentType: "Type",
+        addedOn: "Ajouté le",
+        expiresOn: "Expire le",
+        notificationBefore:
+          "Notification {{days}} jour(s) avant",
 
         movements: "Mouvements",
         totalEntries: "Total des entrées",
@@ -1422,6 +1503,62 @@ const fr = {
         search:
           "Rechercher par référence, désignation, zone ou adresse...",
         allStatuses: "Tous les statuts",
+      },
+
+
+      publicFailure: {
+        title:
+          "Signaler une panne d’éclairage public",
+        description:
+          "Signalez un problème sur un point lumineux sans avoir besoin de vous connecter.",
+        publicAccess:
+          "Accès public — aucune connexion requise",
+        backToLogin:
+          "Connexion des agents",
+        choosePointTitle:
+          "Identifier le point lumineux",
+        choosePointDescription:
+          "Recherchez le point par référence, zone ou adresse, puis sélectionnez-le.",
+        search:
+          "Rechercher un point lumineux",
+        searchPlaceholder:
+          "Référence, zone, adresse...",
+        light:
+          "Point lumineux",
+        chooseLight:
+          "Sélectionner un point lumineux",
+        loading:
+          "Chargement des points lumineux...",
+        loadError:
+          "Impossible de charger les points lumineux.",
+        alreadyReported:
+          "Une panne est déjà signalée ou en cours de traitement pour ce point lumineux.",
+        alreadyReportedShort:
+          "panne déjà signalée",
+        failureDescription:
+          "Description de la panne",
+        failurePlaceholder:
+          "Décrivez le problème observé : lampe éteinte, clignotement, poteau endommagé...",
+        requiredLight:
+          "Veuillez sélectionner le point lumineux concerné.",
+        requiredDescription:
+          "Veuillez décrire la panne constatée.",
+        submit:
+          "Envoyer le signalement",
+        submitting:
+          "Envoi du signalement...",
+        submitError:
+          "Impossible d’envoyer le signalement. Veuillez réessayer.",
+        successTitle:
+          "Signalement envoyé",
+        successDescription:
+          "Merci. Votre signalement a été enregistré et pourra être traité par le service concerné.",
+        reportNumber:
+          "Numéro du signalement",
+        anotherReport:
+          "Signaler une autre panne",
+        reporter:
+          "Signalement public",
       },
 
       failureStatuses: {

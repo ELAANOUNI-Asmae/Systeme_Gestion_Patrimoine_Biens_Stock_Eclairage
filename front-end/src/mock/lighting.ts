@@ -7,253 +7,151 @@ import type {
 export const initialMockLights: Light[] = [
   {
     id: 1,
-
     reference: "LMP-001",
-
-    designation:
-      "Lampadaire principal",
-
-    designationAr:
-      "مصباح إنارة رئيسي",
-
-    zone:
-      "Centre-ville",
-
-    zoneAr:
-      "وسط المدينة",
-
-    address:
-      "Avenue Mohammed V",
-
-    addressAr:
-      "شارع محمد الخامس",
-
-    latitude:
-      30.4208,
-
-    longitude:
-      -9.5981,
-
-    status:
-      "ACTIVE",
-
-    installationDate:
-      "2024-03-10",
-
-    power:
-      120,
+    designation: "Lampadaire principal",
+    designationAr: "مصباح إنارة رئيسي",
+    zone: "Centre-ville",
+    zoneAr: "وسط المدينة",
+    address: "Avenue Mohammed V",
+    addressAr: "شارع محمد الخامس",
+    latitude: 30.4208,
+    longitude: -9.5981,
+    status: "ACTIVE",
+    installationDate: "2024-03-10",
+    power: 120,
+    documents: [
+      {
+        id: 1001,
+        name: "Fiche technique",
+        category: "ATTACHMENT",
+        type: "TECHNICAL_SHEET",
+        fileName: "fiche-lmp-001.pdf",
+        uploadDate: "2024-03-10",
+      },
+    ],
   },
 
   {
     id: 2,
-
-    reference:
-      "LMP-002",
-
-    designation:
-      "Lampadaire secondaire",
-
-    designationAr:
-      "مصباح إنارة ثانوي",
-
-    zone:
-      "Hay Mohammadi",
-
-    zoneAr:
-      "حي المحمدي",
-
-    address:
-      "Rue 12",
-
-    addressAr:
-      "الزنقة 12",
-
-    latitude:
-      30.4381,
-
-    longitude:
-      -9.5576,
-
-    status:
-      "DAMAGED",
-
-    installationDate:
-      "2023-11-18",
-
-    power:
-      100,
+    reference: "LMP-002",
+    designation: "Lampadaire secondaire",
+    designationAr: "مصباح إنارة ثانوي",
+    zone: "Hay Mohammadi",
+    zoneAr: "حي المحمدي",
+    address: "Rue 12",
+    addressAr: "الزنقة 12",
+    latitude: 30.4381,
+    longitude: -9.5576,
+    status: "UNDER_MAINTENANCE",
+    installationDate: "2023-11-18",
+    power: 100,
+    documents: [
+      {
+        id: 1002,
+        name: "Garantie",
+        category: "OFFICIAL",
+        type: "WARRANTY",
+        fileName: "garantie-lmp-002.pdf",
+        uploadDate: "2025-01-10",
+        expirationDate: "2027-01-10",
+        reminderDaysBefore: 30,
+      },
+    ],
   },
 
   {
     id: 3,
-
-    reference:
-      "LMP-003",
-
-    designation:
-      "Éclairage jardin public",
-
-    designationAr:
-      "إنارة الحديقة العمومية",
-
-    zone:
-      "Talborjt",
-
-    zoneAr:
-      "تالبرجت",
-
-    address:
-      "Jardin communal",
-
-    addressAr:
-      "الحديقة الجماعية",
-
-    latitude:
-      30.4256,
-
-    longitude:
-      -9.5939,
-
-    status:
-      "UNDER_MAINTENANCE",
-
-    installationDate:
-      "2025-01-05",
-
-    power:
-      80,
+    reference: "LMP-003",
+    designation: "Éclairage jardin public",
+    designationAr: "إنارة الحديقة العمومية",
+    zone: "Talborjt",
+    zoneAr: "تالبرجت",
+    address: "Jardin communal",
+    addressAr: "الحديقة الجماعية",
+    latitude: 30.4256,
+    longitude: -9.5939,
+    status: "UNDER_MAINTENANCE",
+    installationDate: "2025-01-05",
+    power: 80,
+    documents: [],
   },
 
   {
     id: 4,
-
-    reference:
-      "LMP-004",
-
-    designation:
-      "Lampadaire boulevard",
-
-    designationAr:
-      "مصباح إنارة بالشارع",
-
-    zone:
-      "Founty",
-
-    zoneAr:
-      "فونتي",
-
-    address:
-      "Boulevard du 20 Août",
-
-    addressAr:
-      "شارع 20 غشت",
-
-    latitude:
-      30.4077,
-
-    longitude:
-      -9.5998,
-
-    status:
-      "ACTIVE",
-
-    installationDate:
-      "2025-06-12",
-
-    power:
-      150,
+    reference: "LMP-004",
+    designation: "Lampadaire boulevard",
+    designationAr: "مصباح إنارة بالشارع",
+    zone: "Founty",
+    zoneAr: "فونتي",
+    address: "Boulevard du 20 Août",
+    addressAr: "شارع 20 غشت",
+    latitude: 30.4077,
+    longitude: -9.5998,
+    status: "ACTIVE",
+    installationDate: "2025-06-12",
+    power: 150,
+    documents: [],
   },
 
   {
     id: 5,
-
-    reference:
-      "LMP-005",
-
-    designation:
-      "Point lumineux résidentiel",
-
-    designationAr:
-      "نقطة إنارة سكنية",
-
-    zone:
-      "Dakhla",
-
-    zoneAr:
-      "الداخلة",
-
-    address:
-      "Avenue des FAR",
-
-    addressAr:
-      "شارع القوات المسلحة الملكية",
-
-    latitude:
-      30.3979,
-
-    longitude:
-      -9.5621,
-
-    status:
-      "INACTIVE",
-
-    installationDate:
-      "2022-09-20",
-
-    power:
-      90,
+    reference: "LMP-005",
+    designation: "Point lumineux résidentiel",
+    designationAr: "نقطة إنارة سكنية",
+    zone: "Dakhla",
+    zoneAr: "الداخلة",
+    address: "Avenue des FAR",
+    addressAr: "شارع القوات المسلحة الملكية",
+    latitude: 30.3979,
+    longitude: -9.5621,
+    status: "INACTIVE",
+    installationDate: "2022-09-20",
+    power: 90,
+    documents: [],
   },
 ];
 
 export const initialMockFailures: Failure[] = [
   {
-    id:
-      1,
-
-    lightId:
-      2,
-
-    lightReference:
-      "LMP-002",
-
-    lightDesignation:
-      "Lampadaire secondaire",
-
-    lightDesignationAr:
-      "مصباح إنارة ثانوي",
-
-    description:
-      "Lampadaire ne s’allume plus.",
-
-    reportedBy:
-      "Agent communal",
-
-    reportedAt:
-      "2026-08-04",
-
-    status:
-      "REPORTED",
+    id: 1,
+    lightId: 2,
+    lightReference: "LMP-002",
+    lightDesignation: "Lampadaire secondaire",
+    lightDesignationAr: "مصباح إنارة ثانوي",
+    description: "Lampadaire ne s’allume plus.",
+    reportedBy: "Agent communal",
+    reportedAt: "2026-08-04",
+    status: "IN_PROGRESS",
+    documents: [
+      {
+        id: 2001,
+        name: "Photo de la panne",
+        category: "ATTACHMENT",
+        type: "PHOTO",
+        fileName: "panne-lmp-002.jpg",
+        uploadDate: "2026-08-04",
+      },
+    ],
   },
 ];
 
 export const initialMockInterventions: Intervention[] = [
   {
-    id:
-      1,
-
-    failureId:
-      1,
-
-    technician:
-      "Technicien 1",
-
-    interventionDate:
-      "2026-08-05",
-
-    description:
-      "Diagnostic du câblage.",
-
-    completed:
-      false,
+    id: 1,
+    failureId: 1,
+    technician: "Technicien 1",
+    interventionDate: "2026-08-05",
+    description: "Diagnostic du câblage.",
+    completed: false,
+    documents: [
+      {
+        id: 3001,
+        name: "Rapport de diagnostic",
+        category: "ATTACHMENT",
+        type: "REPORT",
+        fileName: "rapport-diagnostic-lmp-002.pdf",
+        uploadDate: "2026-08-05",
+      },
+    ],
   },
 ];

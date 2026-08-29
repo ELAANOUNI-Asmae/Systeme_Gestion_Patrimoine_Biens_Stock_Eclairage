@@ -2,9 +2,11 @@ import {
   ArrowDownToLine,
   ArrowLeft,
   ArrowUpFromLine,
+  Barcode,
   Boxes,
   CalendarDays,
   FileText,
+  Hash,
   History,
   MapPin,
   Pencil,
@@ -47,12 +49,16 @@ import type {
 } from "../../types/stock";
 
 function ArticleDetailsPage() {
-  const { id } = useParams();
+  const { id } =
+    useParams();
 
-  const articleId = Number(id);
+  const articleId =
+    Number(id);
 
-  const { t, i18n } =
-    useTranslation();
+  const {
+    t,
+    i18n,
+  } = useTranslation();
 
   const isArabic =
     i18n.language.startsWith(
@@ -141,7 +147,10 @@ function ArticleDetailsPage() {
       };
 
     void loadData();
-  }, [articleId, t]);
+  }, [
+    articleId,
+    t,
+  ]);
 
   const totalEntries =
     useMemo(
@@ -250,16 +259,45 @@ function ArticleDetailsPage() {
       label: t(
         "stock.details.reference",
       ),
+
       value:
         article.reference,
+
       icon: Tag,
+    },
+
+    {
+      label: t(
+        "stock.details.serialNumber",
+      ),
+
+      value:
+        article.serialNumber ||
+        "-",
+
+      icon: Hash,
+    },
+
+    {
+      label: t(
+        "stock.details.barcode",
+      ),
+
+      value:
+        article.barcode ||
+        "-",
+
+      icon: Barcode,
     },
 
     {
       label: t(
         "stock.details.category",
       ),
-      value: category,
+
+      value:
+        category,
+
       icon: Boxes,
     },
 
@@ -267,9 +305,11 @@ function ArticleDetailsPage() {
       label: t(
         "stock.details.quantity",
       ),
+
       value: `${article.quantity} ${t(
         `stock.units.${article.unit}`,
       )}`,
+
       icon: Boxes,
     },
 
@@ -277,27 +317,37 @@ function ArticleDetailsPage() {
       label: t(
         "stock.details.minimumQuantity",
       ),
+
       value: `${article.minimumQuantity} ${t(
         `stock.units.${article.unit}`,
       )}`,
-      icon: TriangleAlert,
+
+      icon:
+        TriangleAlert,
     },
 
     {
       label: t(
         "stock.details.location",
       ),
-      value: location,
-      icon: MapPin,
+
+      value:
+        location,
+
+      icon:
+        MapPin,
     },
 
     {
       label: t(
         "stock.details.updatedAt",
       ),
+
       value:
         article.updatedAt,
-      icon: CalendarDays,
+
+      icon:
+        CalendarDays,
     },
   ];
 
@@ -407,7 +457,17 @@ function ArticleDetailsPage() {
                     }
                   </p>
 
-                  <p className="mt-2 font-medium text-slate-800 dark:text-slate-100">
+                  <p
+                    className="mt-2 font-medium text-slate-800 dark:text-slate-100"
+                    dir={
+                      item.label ===
+                        t("stock.details.barcode") ||
+                      item.label ===
+                        t("stock.details.serialNumber")
+                        ? "ltr"
+                        : undefined
+                    }
+                  >
                     {
                       item.value
                     }
@@ -417,6 +477,133 @@ function ArticleDetailsPage() {
             },
           )}
         </div>
+      </article>
+
+      {/* ARTICLE DOCUMENTS */}
+
+      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6">
+        <div className="flex items-center gap-3">
+          <FileText className="text-orange-600 dark:text-orange-400" />
+
+          <div>
+            <h2 className="font-bold text-slate-900 dark:text-white">
+              {t(
+                "stock.details.documentsTitle",
+              )}
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {t(
+                "stock.details.documentsDescription",
+              )}
+            </p>
+          </div>
+        </div>
+
+        {article.documents.length ===
+        0 ? (
+          <p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+            {t(
+              "stock.details.noDocuments",
+            )}
+          </p>
+        ) : (
+          <div className="mt-5 space-y-3">
+            {article.documents.map(
+              (
+                document,
+              ) => (
+                <div
+                  key={
+                    document.id
+                  }
+                  className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"
+                >
+                  <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-slate-800 dark:text-slate-100">
+                          {
+                            document.name
+                          }
+                        </p>
+
+                        <span
+                          className={
+                            document.category ===
+                            "OFFICIAL"
+                              ? "rounded-full bg-orange-100 px-2.5 py-1 text-xs font-semibold text-orange-700 dark:bg-orange-500/15 dark:text-orange-300"
+                              : "rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                          }
+                        >
+                          {document.category ===
+                          "OFFICIAL"
+                            ? t(
+                                "stock.details.officialDocument",
+                              )
+                            : t(
+                                "stock.details.attachment",
+                              )}
+                        </span>
+                      </div>
+
+                      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                        {
+                          document.fileName
+                        }
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        {t(
+                          "stock.details.documentType",
+                        )}{" : "}
+                        {t(
+                          `stock.documentTypes.${document.type}`,
+                        )}
+                        {" · "}
+                        {t(
+                          "stock.details.addedOn",
+                        )}{" "}
+                        {
+                          document.uploadDate
+                        }
+                      </p>
+
+                      {document.category ===
+                        "OFFICIAL" &&
+                        document.expirationDate && (
+                          <div className="mt-3 rounded-lg bg-orange-50 px-3 py-2 text-xs font-medium text-orange-700 dark:bg-orange-500/10 dark:text-orange-300">
+                            {t(
+                              "stock.details.expiresOn",
+                            )}{" "}
+                            {
+                              document.expirationDate
+                            }
+
+                            {document.reminderDaysBefore !==
+                              undefined && (
+                              <>
+                                {" · "}
+                                {t(
+                                  "stock.details.notificationBefore",
+                                  {
+                                    days:
+                                      document.reminderDaysBefore,
+                                  },
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
+                    </div>
+
+                    <FileText className="shrink-0 text-slate-400" />
+                  </div>
+                </div>
+              ),
+            )}
+          </div>
+        )}
       </article>
 
       {/* MOVEMENT STATISTICS */}
@@ -521,7 +708,9 @@ function ArticleDetailsPage() {
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-700">
             {movements.map(
-              (movement) => {
+              (
+                movement,
+              ) => {
                 const isEntry =
                   movement.type ===
                   "ENTRY";
@@ -544,15 +733,11 @@ function ArticleDetailsPage() {
                         >
                           {isEntry ? (
                             <ArrowDownToLine
-                              size={
-                                20
-                              }
+                              size={20}
                             />
                           ) : (
                             <ArrowUpFromLine
-                              size={
-                                20
-                              }
+                              size={20}
                             />
                           )}
                         </div>
@@ -629,30 +814,51 @@ function ArticleDetailsPage() {
                             </p>
                           )}
 
-                          {movement.documents
-                            .length >
+                          {movement.documents.length >
                             0 && (
-                            <div className="mt-3 flex flex-wrap gap-2">
+                            <div className="mt-4 space-y-2">
                               {movement.documents.map(
                                 (
                                   document,
                                 ) => (
-                                  <span
+                                  <div
                                     key={
                                       document.id
                                     }
-                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
+                                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs dark:border-slate-600 dark:bg-slate-900"
                                   >
-                                    <FileText
-                                      size={
-                                        14
-                                      }
-                                    />
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <FileText
+                                        size={14}
+                                        className="text-orange-600"
+                                      />
 
-                                    {
-                                      document.fileName
-                                    }
-                                  </span>
+                                      <span className="font-semibold text-slate-700 dark:text-slate-200">
+                                        {
+                                          document.name
+                                        }
+                                      </span>
+
+                                      <span className="text-slate-400">
+                                        {
+                                          document.fileName
+                                        }
+                                      </span>
+                                    </div>
+
+                                    {document.category ===
+                                      "OFFICIAL" &&
+                                      document.expirationDate && (
+                                        <p className="mt-1 text-orange-600 dark:text-orange-400">
+                                          {t(
+                              "stock.details.expiresOn",
+                            )}{" "}
+                                          {
+                                            document.expirationDate
+                                          }
+                                        </p>
+                                      )}
+                                  </div>
                                 ),
                               )}
                             </div>

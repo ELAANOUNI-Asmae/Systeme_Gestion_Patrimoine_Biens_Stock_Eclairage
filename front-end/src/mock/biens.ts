@@ -57,6 +57,9 @@ export const initialMockBiens: Bien[] = [
 
         name: "Carte grise",
 
+        category:
+          "ATTACHMENT",
+
         type: "REGISTRATION",
 
         fileName:
@@ -71,6 +74,9 @@ export const initialMockBiens: Bien[] = [
 
         name:
           "Facture d’achat",
+
+        category:
+          "ATTACHMENT",
 
         type: "INVOICE",
 
@@ -114,7 +120,8 @@ export const initialMockBiens: Bien[] = [
     designationAr:
       "مولد كهربائي",
 
-    assetStatus: "AVAILABLE",
+    assetStatus:
+      "AVAILABLE",
 
     acquisitionDate:
       "2024-11-20",
@@ -136,6 +143,9 @@ export const initialMockBiens: Bien[] = [
 
         name:
           "Facture d’achat",
+
+        category:
+          "ATTACHMENT",
 
         type: "INVOICE",
 
@@ -169,7 +179,8 @@ export const initialMockBiens: Bien[] = [
   {
     id: 3,
 
-    type: "REAL_ESTATE",
+    type:
+      "REAL_ESTATE",
 
     designation:
       "Local administratif",
@@ -177,7 +188,8 @@ export const initialMockBiens: Bien[] = [
     designationAr:
       "مقر إداري",
 
-    assetStatus: "IN_USE",
+    assetStatus:
+      "IN_USE",
 
     acquisitionDate:
       "2020-03-05",
@@ -200,7 +212,11 @@ export const initialMockBiens: Bien[] = [
         name:
           "Titre foncier",
 
-        type: "CERTIFICATE",
+        category:
+          "ATTACHMENT",
+
+        type:
+          "CERTIFICATE",
 
         fileName:
           "titre-foncier-local.pdf",
@@ -264,6 +280,9 @@ export const initialMockBiens: Bien[] = [
         name:
           "Contrat de vente",
 
+        category:
+          "ATTACHMENT",
+
         type: "CONTRACT",
 
         fileName:
@@ -292,7 +311,8 @@ export const initialMockBiens: Bien[] = [
 
       bienId: 4,
 
-      partyType: "PERSON",
+      partyType:
+        "PERSON",
 
       buyerName:
         "Ahmed El Mansouri",

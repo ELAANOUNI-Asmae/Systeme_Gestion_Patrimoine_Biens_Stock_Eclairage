@@ -54,6 +54,10 @@ import type {
   SupplyRequest,
 } from "../../types/stock";
 
+import type {
+  AppDocument,
+} from "../../types/document";
+
 function StockPage() {
   const {
     user,
@@ -254,6 +258,16 @@ function StockPage() {
               .toLowerCase()
               .includes(
                 normalizedSearch,
+              ) ||
+            article.serialNumber
+              ?.toLowerCase()
+              .includes(
+                normalizedSearch,
+              ) ||
+            article.barcode
+              ?.toLowerCase()
+              .includes(
+                normalizedSearch,
               );
 
           const isLowStock =
@@ -382,20 +396,7 @@ function StockPage() {
 
         date?: string;
 
-        documents?: {
-          name: string;
-
-          type:
-            | "INVOICE"
-            | "RECEIPT"
-            | "DELIVERY_NOTE"
-            | "EXIT_VOUCHER"
-            | "OTHER";
-
-          fileName: string;
-
-          uploadDate: string;
-        }[];
+        documents?: AppDocument[];
       },
     ) => {
       try {
@@ -455,14 +456,11 @@ function StockPage() {
     async (
       data: {
         articleDesignation: string;
-
         articleDesignationAr?: string;
-
         requestedQuantity: number;
-
         requester: string;
-
         reason: string;
+        documents?: AppDocument[];
       },
     ) => {
       try {
@@ -1051,6 +1049,29 @@ function StockPage() {
                               request.reason
                             }
                           </p>
+
+                          {request.documents.length >
+                            0 && (
+                            <div className="mt-2 space-y-1">
+                              {request.documents.map(
+                                (
+                                  document,
+                                ) => (
+                                  <p
+                                    key={
+                                      document.id
+                                    }
+                                    className="text-xs font-medium text-orange-600 dark:text-orange-400"
+                                  >
+                                    📄{" "}
+                                    {
+                                      document.fileName
+                                    }
+                                  </p>
+                                ),
+                              )}
+                            </div>
+                          )}
 
                           <p className="mt-1 text-xs text-slate-400">
                             {

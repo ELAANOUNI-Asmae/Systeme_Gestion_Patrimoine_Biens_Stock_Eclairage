@@ -17,6 +17,9 @@ import LoginPage from "../pages/auth/LoginPage";
 import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
 
+// Public
+import PublicFailureReportPage from "../pages/public/PublicFailureReportPage";
+
 // Dashboard
 import DashboardPage from "../pages/dashboard/DashboardPage";
 
@@ -92,6 +95,11 @@ function AppRoutes() {
       <Route
         path={ROUTES.UNAUTHORIZED}
         element={<UnauthorizedPage />}
+      />
+
+      <Route
+        path={ROUTES.PUBLIC_FAILURE_REPORT}
+        element={<PublicFailureReportPage />}
       />
 
       {/* ==================== AUTHENTICATED ==================== */}
@@ -450,7 +458,7 @@ function AppRoutes() {
         path="/"
         element={
           <Navigate
-            to={ROUTES.LOGIN}
+            to={ROUTES.PUBLIC_FAILURE_REPORT}
             replace
           />
         }

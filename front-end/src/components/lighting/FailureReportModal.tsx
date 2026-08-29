@@ -13,22 +13,28 @@ import {
 } from "react-i18next";
 
 import Modal from "../common/Modal";
+import DocumentManager from "../documents/DocumentManager";
 
 import type {
   Light,
 } from "../../types/lighting";
 
+import type {
+  AppDocument,
+} from "../../types/document";
+
+export type FailureReportData = {
+  description: string;
+  documents?: AppDocument[];
+};
+
 type FailureReportModalProps = {
   open: boolean;
-
   light: Light | null;
-
   loading?: boolean;
-
   onClose: () => void;
-
   onSubmit: (
-    description: string,
+    data: FailureReportData,
   ) => Promise<void> | void;
 };
 
@@ -55,6 +61,14 @@ function FailureReportModal({
   ] = useState("");
 
   const [
+    documents,
+    setDocuments,
+  ] =
+    useState<AppDocument[]>(
+      [],
+    );
+
+  const [
     error,
     setError,
   ] = useState("");
@@ -62,6 +76,7 @@ function FailureReportModal({
   useEffect(() => {
     if (open) {
       setDescription("");
+      setDocuments([]);
       setError("");
     }
   }, [open]);
@@ -92,9 +107,11 @@ function FailureReportModal({
 
     setError("");
 
-    await onSubmit(
-      description.trim(),
-    );
+    await onSubmit({
+      description:
+        description.trim(),
+      documents,
+    });
   };
 
   return (
@@ -103,7 +120,7 @@ function FailureReportModal({
       title={t(
         "lighting.failure.modalTitle",
       )}
-      maxWidth="max-w-xl"
+      maxWidth="max-w-4xl"
       onClose={() => {
         if (!loading) {
           onClose();
@@ -171,6 +188,11 @@ function FailureReportModal({
             className="mt-1 w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 dark:focus:ring-orange-500/20"
           />
         </label>
+
+        <DocumentManager
+          documents={documents}
+          onChange={setDocuments}
+        />
 
         <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-4 dark:border-slate-700 sm:flex-row sm:justify-end rtl:sm:justify-start">
           <button

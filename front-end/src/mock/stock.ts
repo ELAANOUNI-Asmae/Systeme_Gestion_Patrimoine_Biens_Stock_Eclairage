@@ -8,7 +8,14 @@ export const initialMockArticles: StockArticle[] = [
   {
     id: 1,
 
-    reference: "ART-001",
+    reference:
+      "ART-001",
+
+    serialNumber:
+      "SN-PAP-A4-001",
+
+    barcode:
+      "6110000000011",
 
     designation:
       "Ramette papier A4",
@@ -26,13 +33,35 @@ export const initialMockArticles: StockArticle[] = [
 
     minimumQuantity: 30,
 
-    unit: "PAQUET",
+    unit:
+      "PAQUET",
 
     location:
       "Magasin A - Étagère 1",
 
     locationAr:
       "المستودع A - الرف 1",
+
+    documents: [
+      {
+        id: 101,
+
+        name:
+          "Fiche fournisseur",
+
+        category:
+          "ATTACHMENT",
+
+        type:
+          "TECHNICAL_SHEET",
+
+        fileName:
+          "fiche-papier-a4.pdf",
+
+        uploadDate:
+          "2026-08-03",
+      },
+    ],
 
     updatedAt:
       "2026-08-03",
@@ -41,7 +70,14 @@ export const initialMockArticles: StockArticle[] = [
   {
     id: 2,
 
-    reference: "ART-002",
+    reference:
+      "ART-002",
+
+    serialNumber:
+      "SN-CART-NOIR-002",
+
+    barcode:
+      "6110000000028",
 
     designation:
       "Cartouche imprimante noire",
@@ -59,13 +95,41 @@ export const initialMockArticles: StockArticle[] = [
 
     minimumQuantity: 10,
 
-    unit: "UNITE",
+    unit:
+      "UNITE",
 
     location:
       "Magasin A - Étagère 3",
 
     locationAr:
       "المستودع A - الرف 3",
+
+    documents: [
+      {
+        id: 102,
+
+        name:
+          "Garantie fournisseur",
+
+        category:
+          "OFFICIAL",
+
+        type:
+          "WARRANTY",
+
+        fileName:
+          "garantie-cartouche.pdf",
+
+        uploadDate:
+          "2026-01-15",
+
+        expirationDate:
+          "2027-01-15",
+
+        reminderDaysBefore:
+          30,
+      },
+    ],
 
     updatedAt:
       "2026-08-02",
@@ -76,6 +140,12 @@ export const initialMockArticles: StockArticle[] = [
 
     reference:
       "ART-003",
+
+    serialNumber:
+      "SN-LED-50W-003",
+
+    barcode:
+      "6110000000035",
 
     designation:
       "Ampoule LED 50W",
@@ -93,13 +163,35 @@ export const initialMockArticles: StockArticle[] = [
 
     minimumQuantity: 20,
 
-    unit: "UNITE",
+    unit:
+      "UNITE",
 
     location:
       "Magasin B - Étagère 2",
 
     locationAr:
       "المستودع B - الرف 2",
+
+    documents: [
+      {
+        id: 103,
+
+        name:
+          "Fiche technique LED",
+
+        category:
+          "ATTACHMENT",
+
+        type:
+          "TECHNICAL_SHEET",
+
+        fileName:
+          "fiche-technique-led-50w.pdf",
+
+        uploadDate:
+          "2026-07-15",
+      },
+    ],
 
     updatedAt:
       "2026-08-01",
@@ -110,6 +202,12 @@ export const initialMockArticles: StockArticle[] = [
 
     reference:
       "ART-004",
+
+    serialNumber:
+      "SN-CABLE-004",
+
+    barcode:
+      "6110000000042",
 
     designation:
       "Câble électrique",
@@ -127,13 +225,16 @@ export const initialMockArticles: StockArticle[] = [
 
     minimumQuantity: 25,
 
-    unit: "METRE",
+    unit:
+      "METRE",
 
     location:
       "Magasin B - Zone 1",
 
     locationAr:
       "المستودع B - المنطقة 1",
+
+    documents: [],
 
     updatedAt:
       "2026-07-31",
@@ -152,7 +253,8 @@ export const initialMockMovements: StockMovement[] = [
     articleDesignationAr:
       "رزمة ورق A4",
 
-    type: "ENTRY",
+    type:
+      "ENTRY",
 
     quantity: 50,
 
@@ -178,7 +280,11 @@ export const initialMockMovements: StockMovement[] = [
         name:
           "Facture fournisseur",
 
-        type: "INVOICE",
+        category:
+          "ATTACHMENT",
+
+        type:
+          "INVOICE",
 
         fileName:
           "facture-atlas-2026-001.pdf",
@@ -200,7 +306,8 @@ export const initialMockMovements: StockMovement[] = [
     articleDesignationAr:
       "مصباح LED 50W",
 
-    type: "EXIT",
+    type:
+      "EXIT",
 
     quantity: 10,
 
@@ -226,6 +333,9 @@ export const initialMockMovements: StockMovement[] = [
         name:
           "Bon de sortie",
 
+        category:
+          "ATTACHMENT",
+
         type:
           "EXIT_VOUCHER",
 
@@ -249,7 +359,8 @@ export const initialMockSupplyRequests: SupplyRequest[] = [
     articleDesignationAr:
       "خرطوشة طابعة سوداء",
 
-    requestedQuantity: 20,
+    requestedQuantity:
+      20,
 
     requester:
       "Service administratif",
@@ -260,7 +371,29 @@ export const initialMockSupplyRequests: SupplyRequest[] = [
     requestDate:
       "2026-08-03",
 
-    status: "PENDING",
+    status:
+      "PENDING",
+
+    documents: [
+      {
+        id: 201,
+
+        name:
+          "Justificatif du besoin",
+
+        category:
+          "ATTACHMENT",
+
+        type:
+          "OTHER",
+
+        fileName:
+          "justificatif-cartouches.pdf",
+
+        uploadDate:
+          "2026-08-03",
+      },
+    ],
   },
 
   {
@@ -272,7 +405,8 @@ export const initialMockSupplyRequests: SupplyRequest[] = [
     articleDesignationAr:
       "رزمة ورق A4",
 
-    requestedQuantity: 40,
+    requestedQuantity:
+      40,
 
     requester:
       "Service ressources humaines",
@@ -283,6 +417,9 @@ export const initialMockSupplyRequests: SupplyRequest[] = [
     requestDate:
       "2026-08-01",
 
-    status: "APPROVED",
+    status:
+      "APPROVED",
+
+    documents: [],
   },
 ];

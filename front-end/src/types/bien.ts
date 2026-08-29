@@ -1,3 +1,7 @@
+import type {
+  AppDocument,
+} from "./document";
+
 export type AssetType =
   | "VEHICLE"
   | "MACHINE"
@@ -13,30 +17,6 @@ export type AssetStatus =
   | "DISPOSED"
   | "SOLD"
   | "ARCHIVED";
-
-export type DocumentType =
-  | "INVOICE"
-  | "RECEIPT"
-  | "CONTRACT"
-  | "REGISTRATION"
-  | "INSURANCE"
-  | "CERTIFICATE"
-  | "PHOTO"
-  | "OTHER";
-
-export interface BienDocument {
-  id: number;
-
-  name: string;
-
-  type: DocumentType;
-
-  fileName: string;
-
-  uploadDate: string;
-
-  description?: string;
-}
 
 export type PartyType =
   | "PERSON"
@@ -181,7 +161,7 @@ export interface Bien {
 
   inventoryId: string;
 
-  documents: BienDocument[];
+  documents: AppDocument[];
 
   vehicleDetails?: VehicleDetails;
 
@@ -215,7 +195,7 @@ export interface BienFormData {
 
   inventoryId: string;
 
-  documents: BienDocument[];
+  documents: AppDocument[];
 
   vehicleDetails?: VehicleDetails;
 

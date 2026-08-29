@@ -1,3 +1,7 @@
+import type {
+  AppDocument,
+} from "./document";
+
 export type StockUnit =
   | "UNITE"
   | "BOITE"
@@ -15,25 +19,14 @@ export type StockMovementType =
   | "ENTRY"
   | "EXIT";
 
-export type StockDocumentType =
-  | "INVOICE"
-  | "RECEIPT"
-  | "DELIVERY_NOTE"
-  | "EXIT_VOUCHER"
-  | "OTHER";
-
-export interface StockDocument {
-  id: number;
-  name: string;
-  type: StockDocumentType;
-  fileName: string;
-  uploadDate: string;
-}
-
 export interface StockArticle {
   id: number;
 
   reference: string;
+
+  serialNumber?: string;
+
+  barcode?: string;
 
   designation: string;
   designationAr: string;
@@ -48,6 +41,8 @@ export interface StockArticle {
 
   location: string;
   locationAr: string;
+
+  documents: AppDocument[];
 
   updatedAt: string;
 }
@@ -55,6 +50,10 @@ export interface StockArticle {
 export interface StockArticleFormData {
   reference: string;
 
+  serialNumber?: string;
+
+  barcode?: string;
+
   designation: string;
   designationAr: string;
 
@@ -68,6 +67,8 @@ export interface StockArticleFormData {
 
   location: string;
   locationAr: string;
+
+  documents: AppDocument[];
 }
 
 export interface StockMovement {
@@ -92,7 +93,7 @@ export interface StockMovement {
 
   date: string;
 
-  documents: StockDocument[];
+  documents: AppDocument[];
 }
 
 export interface SupplyRequest {
@@ -110,6 +111,8 @@ export interface SupplyRequest {
   requestDate: string;
 
   status: SupplyRequestStatus;
+
+  documents: AppDocument[];
 }
 
 export interface StockFilters {

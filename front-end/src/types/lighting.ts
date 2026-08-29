@@ -1,3 +1,7 @@
+import type {
+  AppDocument,
+} from "./document";
+
 export type LightStatus =
   | "ACTIVE"
   | "INACTIVE"
@@ -11,7 +15,6 @@ export type FailureStatus =
 
 export interface Light {
   id: number;
-
   reference: string;
 
   designation: string;
@@ -27,10 +30,10 @@ export interface Light {
   longitude: number;
 
   status: LightStatus;
-
   installationDate: string;
-
   power: number;
+
+  documents: AppDocument[];
 }
 
 export interface LightFormData {
@@ -49,17 +52,16 @@ export interface LightFormData {
   longitude: number;
 
   status: LightStatus;
-
   installationDate: string;
-
   power: number;
+
+  documents: AppDocument[];
 }
 
 export interface Failure {
   id: number;
 
   lightId: number;
-
   lightReference: string;
 
   lightDesignation: string;
@@ -68,10 +70,11 @@ export interface Failure {
   description: string;
 
   reportedBy: string;
-
   reportedAt: string;
 
   status: FailureStatus;
+
+  documents: AppDocument[];
 }
 
 export interface Intervention {
@@ -80,10 +83,10 @@ export interface Intervention {
   failureId: number;
 
   technician: string;
-
   interventionDate: string;
-
   description: string;
 
   completed: boolean;
+
+  documents: AppDocument[];
 }

@@ -12,17 +12,46 @@ import type {
   LightFormData,
 } from "../types/lighting";
 
-let lights: Light[] = [
-  ...initialMockLights,
-];
+import type {
+  AppDocument,
+} from "../types/document";
 
-let failures: Failure[] = [
-  ...initialMockFailures,
-];
+let lights: Light[] =
+  initialMockLights.map(
+    (light) => ({
+      ...light,
+      documents: light.documents.map(
+        (document) => ({
+          ...document,
+        }),
+      ),
+    }),
+  );
 
-let interventions: Intervention[] = [
-  ...initialMockInterventions,
-];
+let failures: Failure[] =
+  initialMockFailures.map(
+    (failure) => ({
+      ...failure,
+      documents: failure.documents.map(
+        (document) => ({
+          ...document,
+        }),
+      ),
+    }),
+  );
+
+let interventions: Intervention[] =
+  initialMockInterventions.map(
+    (intervention) => ({
+      ...intervention,
+      documents:
+        intervention.documents.map(
+          (document) => ({
+            ...document,
+          }),
+        ),
+    }),
+  );
 
 const delay = (
   milliseconds = 200,
@@ -36,6 +65,15 @@ const delay = (
     },
   );
 
+const cloneDocuments = (
+  documents: AppDocument[],
+) =>
+  documents.map(
+    (document) => ({
+      ...document,
+    }),
+  );
+
 export const lightingService = {
   async getLights(): Promise<
     Light[]
@@ -45,6 +83,10 @@ export const lightingService = {
     return lights.map(
       (light) => ({
         ...light,
+        documents:
+          cloneDocuments(
+            light.documents,
+          ),
       }),
     );
   },
@@ -62,12 +104,16 @@ export const lightingService = {
 
     if (!light) {
       throw new Error(
-        "Équipement d’éclairage introuvable.",
+        "Point lumineux introuvable.",
       );
     }
 
     return {
       ...light,
+      documents:
+        cloneDocuments(
+          light.documents,
+        ),
     };
   },
 
@@ -139,6 +185,11 @@ export const lightingService = {
 
       power:
         data.power,
+
+      documents:
+        cloneDocuments(
+          data.documents ?? [],
+        ),
     };
 
     lights = [
@@ -148,6 +199,10 @@ export const lightingService = {
 
     return {
       ...newLight,
+      documents:
+        cloneDocuments(
+          newLight.documents,
+        ),
     };
   },
 
@@ -165,7 +220,7 @@ export const lightingService = {
 
     if (index === -1) {
       throw new Error(
-        "Équipement d’éclairage introuvable.",
+        "Point lumineux introuvable.",
       );
     }
 
@@ -185,6 +240,22 @@ export const lightingService = {
         "Cette référence existe déjà.",
       );
     }
+
+    const activeFailure =
+      failures.find(
+        (failure) =>
+          failure.lightId === id &&
+          failure.status !==
+            "RESOLVED",
+      );
+
+    const synchronizedStatus =
+      activeFailure
+        ? activeFailure.status ===
+          "IN_PROGRESS"
+          ? "UNDER_MAINTENANCE"
+          : "DAMAGED"
+        : data.status;
 
     const updatedLight: Light = {
       id,
@@ -219,13 +290,18 @@ export const lightingService = {
         data.longitude,
 
       status:
-        data.status,
+        synchronizedStatus,
 
       installationDate:
         data.installationDate,
 
       power:
         data.power,
+
+      documents:
+        cloneDocuments(
+          data.documents ?? [],
+        ),
     };
 
     lights[index] =
@@ -233,6 +309,10 @@ export const lightingService = {
 
     return {
       ...updatedLight,
+      documents:
+        cloneDocuments(
+          updatedLight.documents,
+        ),
     };
   },
 
@@ -241,10 +321,24 @@ export const lightingService = {
   ): Promise<void> {
     await delay();
 
-    lights =
-      lights.filter(
-        (light) =>
-          light.id !== id,
+    const relatedFailureIds =
+      failures
+        .filter(
+          (failure) =>
+            failure.lightId ===
+            id,
+        )
+        .map(
+          (failure) =>
+            failure.id,
+        );
+
+    interventions =
+      interventions.filter(
+        (intervention) =>
+          !relatedFailureIds.includes(
+            intervention.failureId,
+          ),
       );
 
     failures =
@@ -252,6 +346,12 @@ export const lightingService = {
         (failure) =>
           failure.lightId !==
           id,
+      );
+
+    lights =
+      lights.filter(
+        (light) =>
+          light.id !== id,
       );
   },
 
@@ -263,6 +363,10 @@ export const lightingService = {
     return failures.map(
       (failure) => ({
         ...failure,
+        documents:
+          cloneDocuments(
+            failure.documents,
+          ),
       }),
     );
   },
@@ -281,6 +385,10 @@ export const lightingService = {
       .map(
         (failure) => ({
           ...failure,
+          documents:
+            cloneDocuments(
+              failure.documents,
+            ),
         }),
       );
   },
@@ -288,10 +396,9 @@ export const lightingService = {
   async createFailure(
     data: {
       lightId: number;
-
       description: string;
-
       reportedBy: string;
+      documents?: AppDocument[];
     },
   ): Promise<Failure> {
     await delay();
@@ -305,7 +412,7 @@ export const lightingService = {
 
     if (!light) {
       throw new Error(
-        "Équipement d’éclairage introuvable.",
+        "Point lumineux introuvable.",
       );
     }
 
@@ -362,6 +469,11 @@ export const lightingService = {
 
       status:
         "REPORTED",
+
+      documents:
+        cloneDocuments(
+          data.documents ?? [],
+        ),
     };
 
     failures = [
@@ -374,6 +486,10 @@ export const lightingService = {
 
     return {
       ...newFailure,
+      documents:
+        cloneDocuments(
+          newFailure.documents,
+        ),
     };
   },
 
@@ -407,6 +523,13 @@ export const lightingService = {
 
     if (light) {
       if (
+        status === "REPORTED"
+      ) {
+        light.status =
+          "DAMAGED";
+      }
+
+      if (
         status ===
         "IN_PROGRESS"
       ) {
@@ -425,6 +548,10 @@ export const lightingService = {
 
     return {
       ...failure,
+      documents:
+        cloneDocuments(
+          failure.documents,
+        ),
     };
   },
 
@@ -436,6 +563,10 @@ export const lightingService = {
     return interventions.map(
       (intervention) => ({
         ...intervention,
+        documents:
+          cloneDocuments(
+            intervention.documents,
+          ),
       }),
     );
   },
@@ -454,6 +585,10 @@ export const lightingService = {
       .map(
         (intervention) => ({
           ...intervention,
+          documents:
+            cloneDocuments(
+              intervention.documents,
+            ),
         }),
       );
   },
@@ -461,12 +596,10 @@ export const lightingService = {
   async createIntervention(
     data: {
       failureId: number;
-
       technician: string;
-
       interventionDate: string;
-
       description: string;
+      documents?: AppDocument[];
     },
   ): Promise<Intervention> {
     await delay();
@@ -490,6 +623,20 @@ export const lightingService = {
     ) {
       throw new Error(
         "Impossible d’ajouter une intervention à une panne déjà résolue.",
+      );
+    }
+
+    const activeIntervention =
+      interventions.find(
+        (intervention) =>
+          intervention.failureId ===
+            failure.id &&
+          !intervention.completed,
+      );
+
+    if (activeIntervention) {
+      throw new Error(
+        "Une intervention est déjà en cours pour cette panne.",
       );
     }
 
@@ -517,6 +664,11 @@ export const lightingService = {
 
       completed:
         false,
+
+      documents:
+        cloneDocuments(
+          data.documents ?? [],
+        ),
     };
 
     interventions = [
@@ -541,6 +693,10 @@ export const lightingService = {
 
     return {
       ...intervention,
+      documents:
+        cloneDocuments(
+          intervention.documents,
+        ),
     };
   },
 
@@ -590,6 +746,10 @@ export const lightingService = {
 
     return {
       ...intervention,
+      documents:
+        cloneDocuments(
+          intervention.documents,
+        ),
     };
   },
 };

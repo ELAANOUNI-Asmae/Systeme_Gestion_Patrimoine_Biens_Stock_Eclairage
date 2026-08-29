@@ -4,6 +4,7 @@ export const ROUTES = {
   FORGOT_PASSWORD: "/mot-de-passe-oublie",
   RESET_PASSWORD: "/reinitialiser-mot-de-passe",
   UNAUTHORIZED: "/403",
+  PUBLIC_FAILURE_REPORT: "/signaler-panne",
 
   // Dashboard
   DASHBOARD: "/tableau-de-bord",
