@@ -2,7 +2,6 @@ export type AppSettings = {
   communeName: string;
   communeCity: string;
   language: "FR" | "AR";
-  notificationsEnabled: boolean;
 };
 
 export const SETTINGS_STORAGE_KEY =
@@ -20,9 +19,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   language:
     "FR",
-
-  notificationsEnabled:
-    true,
 };
 
 export const settingsService = {
@@ -74,10 +70,5 @@ export const settingsService = {
         SETTINGS_CHANGED_EVENT,
       ),
     );
-  },
-
-  areNotificationsEnabled(): boolean {
-    return this.get()
-      .notificationsEnabled;
   },
 };

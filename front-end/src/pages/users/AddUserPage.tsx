@@ -33,55 +33,73 @@ function AddUserPage() {
   const navigate =
     useNavigate();
 
-  const { t } =
+  const {
+    t,
+  } =
     useTranslation();
 
-  const [loading, setLoading] =
+  const [
+    loading,
+    setLoading,
+  ] =
     useState(false);
 
-  const [error, setError] =
+  const [
+    error,
+    setError,
+  ] =
     useState("");
 
-  const handleSubmit = async (
-    data: UserFormData,
-  ) => {
-    if (!data.pwd) {
-      setError(
-        t(
-          "users.pages.passwordRequired",
-        ),
-      );
+  const handleSubmit =
+    async (
+      data: UserFormData,
+    ) => {
+      if (
+        !data.pwd
+      ) {
+        setError(
+          t(
+            "users.pages.passwordRequired",
+          ),
+        );
 
-      return;
-    }
+        return;
+      }
 
-    try {
-      setLoading(true);
-      setError("");
+      try {
+        setLoading(
+          true,
+        );
 
-      await userService.create(
-        data,
-      );
+        setError("");
 
-      navigate(
-        ROUTES.USERS,
-      );
-    } catch {
-      setError(
-        t(
-          "users.pages.genericError",
-        ),
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+        await userService.create(
+          data,
+        );
+
+        navigate(
+          ROUTES.USERS,
+        );
+      } catch {
+        setError(
+          t(
+            "users.pages.genericError",
+          ),
+        );
+      } finally {
+        setLoading(
+          false,
+        );
+      }
+    };
 
   return (
     <section className="mx-auto max-w-5xl space-y-6">
       <div>
         <Link
-          to={ROUTES.USERS}
+          to={
+            ROUTES.USERS
+          }
           className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-orange-600 dark:text-slate-400 dark:hover:text-orange-400"
         >
           <ArrowLeft
@@ -89,7 +107,9 @@ function AddUserPage() {
             className="rtl:rotate-180"
           />
 
-          {t("users.pages.back")}
+          {t(
+            "users.pages.back",
+          )}
         </Link>
 
         <h1 className="mt-4 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
@@ -115,8 +135,13 @@ function AddUserPage() {
         submitLabel={t(
           "users.pages.create",
         )}
-        loading={loading}
-        onSubmit={handleSubmit}
+        loading={
+          loading
+        }
+        showPassword
+        onSubmit={
+          handleSubmit
+        }
       />
     </section>
   );

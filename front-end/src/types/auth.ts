@@ -1,4 +1,6 @@
-import type { Permission } from "../constants/permissions";
+import type {
+  Permission,
+} from "../constants/permissions";
 
 export interface Role {
   id: number;
@@ -21,7 +23,6 @@ export interface LoginRequest {
 
 export interface AuthContextType {
   user: AuthUser | null;
-
   isAuthenticated: boolean;
 
   login: (

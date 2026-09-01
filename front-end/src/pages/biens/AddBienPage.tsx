@@ -77,6 +77,7 @@ function AddBienPage() {
       )}
 
       <BienForm
+        mode="create"
         submitLabel={t(
           "biens.pages.create",
         )}

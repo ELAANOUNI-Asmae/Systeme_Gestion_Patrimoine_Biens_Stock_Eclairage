@@ -1,16 +1,24 @@
 import {
   BadgeCheck,
+  CircleCheck,
+  CircleX,
   IdCard,
   Mail,
   Phone,
   UserRound,
 } from "lucide-react";
 
-import { useTranslation } from "react-i18next";
+import {
+  useTranslation,
+} from "react-i18next";
 
-import type { User } from "../../types/user";
+import type {
+  User,
+} from "../../types/user";
 
-import { getRoleLabel } from "../../utils/roleLabels";
+import {
+  getRoleLabel,
+} from "../../utils/roleLabels";
 
 type UserCardProps = {
   user: User;
@@ -19,11 +27,16 @@ type UserCardProps = {
 function UserCard({
   user,
 }: UserCardProps) {
-  const { t, i18n } =
+  const {
+    t,
+    i18n,
+  } =
     useTranslation();
 
   const isArabic =
-    i18n.language.startsWith("ar");
+    i18n.language.startsWith(
+      "ar",
+    );
 
   const displayFirstName =
     isArabic
@@ -35,33 +48,46 @@ function UserCard({
       ? user.lastnameAr
       : user.lastname;
 
+  const statusLabel =
+    user.active
+      ? isArabic
+        ? "نشط"
+        : "Actif"
+      : isArabic
+        ? "غير نشط"
+        : "Inactif";
+
   const information = [
     {
       label: t(
         "users.details.fullName",
       ),
-      value: `${displayFirstName} ${displayLastName}`,
+      value:
+        `${displayFirstName} ${displayLastName}`,
       icon: UserRound,
     },
     {
       label: t(
         "users.details.email",
       ),
-      value: user.email,
+      value:
+        user.email,
       icon: Mail,
     },
     {
       label: t(
         "users.details.phone",
       ),
-      value: user.phone,
+      value:
+        user.phone,
       icon: Phone,
     },
     {
       label: t(
         "users.details.cin",
       ),
-      value: user.cin,
+      value:
+        user.cin,
       icon: IdCard,
     },
     {
@@ -69,20 +95,38 @@ function UserCard({
         "users.details.gender",
       ),
       value:
-        user.gender === "HOMME"
-          ? t("users.form.male")
-          : t("users.form.female"),
+        user.gender ===
+        "HOMME"
+          ? t(
+              "users.form.male",
+            )
+          : t(
+              "users.form.female",
+            ),
       icon: UserRound,
     },
     {
       label: t(
         "users.details.role",
       ),
-      value: getRoleLabel(
-        user.role.name,
-        t,
-      ),
+      value:
+        getRoleLabel(
+          user.role.name,
+          t,
+        ),
       icon: BadgeCheck,
+    },
+    {
+      label:
+        isArabic
+          ? "الحالة"
+          : "Statut",
+      value:
+        statusLabel,
+      icon:
+        user.active
+          ? CircleCheck
+          : CircleX,
     },
   ];
 
@@ -90,21 +134,37 @@ function UserCard({
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
       <div className="flex flex-col items-center border-b border-slate-100 pb-6 text-center dark:border-slate-700">
         <div className="flex h-20 w-20 items-center justify-center rounded-full bg-orange-100 text-2xl font-bold text-orange-700 dark:bg-orange-500/15 dark:text-orange-300">
-          {displayFirstName.charAt(0)}
-          {displayLastName.charAt(0)}
+          {displayFirstName.charAt(
+            0,
+          )}
+          {displayLastName.charAt(
+            0,
+          )}
         </div>
 
         <h2 className="mt-4 text-xl font-bold text-slate-900 dark:text-white">
-          {user.firstname} {" "}
-          {user.lastname}
+          {displayFirstName}{" "}
+          {displayLastName}
         </h2>
 
-        <span className="mt-2 rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700 dark:bg-orange-500/15 dark:text-orange-300">
-          {getRoleLabel(
-            user.role.name,
-            t,
-          )}
-        </span>
+        <div className="mt-2 flex flex-wrap justify-center gap-2">
+          <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700 dark:bg-orange-500/15 dark:text-orange-300">
+            {getRoleLabel(
+              user.role.name,
+              t,
+            )}
+          </span>
+
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              user.active
+                ? "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300"
+                : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
+            }`}
+          >
+            {statusLabel}
+          </span>
+        </div>
       </div>
 
       <dl className="mt-6 grid gap-4 sm:grid-cols-2">

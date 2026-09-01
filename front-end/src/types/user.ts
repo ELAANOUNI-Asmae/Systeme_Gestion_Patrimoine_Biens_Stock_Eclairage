@@ -1,6 +1,8 @@
 import type { Role } from "./role";
 
-export type Gender = "HOMME" | "FEMME";
+export type Gender =
+  | "HOMME"
+  | "FEMME";
 
 export interface User {
   id: number;
@@ -16,6 +18,7 @@ export interface User {
   phone: string;
   cin: string;
   role: Role;
+  active: boolean;
 }
 
 export interface UserFormData {

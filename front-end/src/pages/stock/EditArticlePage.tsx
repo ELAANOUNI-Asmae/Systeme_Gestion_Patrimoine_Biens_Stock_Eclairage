@@ -160,10 +160,10 @@ function EditArticlePage() {
   const initialValues:
     StockArticleFormData = {
       reference: article.reference,
-      serialNumber:
-        article.serialNumber ?? "",
       barcode:
-        article.barcode ?? "",
+        article.barcode,
+      brand:
+        article.brand,
       designation:
         article.designation,
       designationAr:
@@ -178,6 +178,10 @@ function EditArticlePage() {
       location: article.location,
       locationAr:
         article.locationAr,
+      unitPriceHt:
+        article.unitPriceHt,
+      vatRate:
+        article.vatRate,
       documents: [
         ...article.documents,
       ],

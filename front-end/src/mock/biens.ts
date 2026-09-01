@@ -11,9 +11,6 @@ export const assetStatuses: AssetStatus[] = [
   "UNDER_MAINTENANCE",
   "OUT_OF_SERVICE",
   "DAMAGED",
-  "DISPOSED",
-  "SOLD",
-  "ARCHIVED",
 ];
 
 export const assetTypes: AssetType[] = [
@@ -257,7 +254,7 @@ export const initialMockBiens: Bien[] = [
     designationAr:
       "سيارة مصلحة قديمة",
 
-    assetStatus: "SOLD",
+    assetStatus: "DISPOSED",
 
     acquisitionDate:
       "2015-01-10",
@@ -346,7 +343,7 @@ export const initialMockBiens: Bien[] = [
       archivedAt:
         "2026-06-15",
 
-      reason: "SOLD",
+      reason: "DISPOSED",
 
       notes:
         "Véhicule vendu après réforme.",

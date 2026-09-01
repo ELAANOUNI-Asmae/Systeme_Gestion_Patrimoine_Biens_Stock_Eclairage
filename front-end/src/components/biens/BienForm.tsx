@@ -1,815 +1,563 @@
+
 import {
   useEffect,
   useState,
-  type ChangeEvent,
   type FormEvent,
 } from "react";
-
 import { useTranslation } from "react-i18next";
 
-import {
-  assetStatuses,
-  assetTypes,
-} from "../../mock/biens";
-
 import type {
+  AssetStatus,
+  AssetType,
   BienFormData,
+  RealEstateDomain,
 } from "../../types/bien";
 
 import DocumentManager from "../documents/DocumentManager";
 
-type BienFormProps = {
+type Props = {
   initialValues?: BienFormData;
-
+  mode?: "create" | "edit";
   submitLabel: string;
-
   loading?: boolean;
-
-  onSubmit: (
-    data: BienFormData,
-  ) => Promise<void> | void;
+  onSubmit: (data: BienFormData) => Promise<void> | void;
 };
+
+const activeStatuses: AssetStatus[] = [
+  "AVAILABLE",
+  "IN_USE",
+  "RENTED",
+  "UNDER_MAINTENANCE",
+  "OUT_OF_SERVICE",
+  "DAMAGED",
+];
+
+const types: AssetType[] = [
+  "VEHICLE",
+  "MACHINE",
+  "REAL_ESTATE",
+];
 
 const emptyValues: BienFormData = {
   type: "VEHICLE",
-
   designation: "",
   designationAr: "",
-
   assetStatus: "AVAILABLE",
-
   acquisitionDate: "",
   purchaseValue: 0,
-
   assignment: "",
   assignmentAr: "",
-
   inventoryId: "",
-
   documents: [],
-
   vehicleDetails: {},
 };
 
 function BienForm({
   initialValues = emptyValues,
+  mode = "create",
   submitLabel,
   loading = false,
   onSubmit,
-}: BienFormProps) {
-  const { t } = useTranslation();
+}: Props) {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith("ar");
+  const tr = (fr: string, ar: string) => (isArabic ? ar : fr);
 
-  const [formData, setFormData] =
-    useState<BienFormData>(
-      initialValues,
-    );
-
-  const [error, setError] =
-    useState("");
+  const [data, setData] =
+    useState<BienFormData>(initialValues);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    setFormData(initialValues);
+    setData(initialValues);
   }, [initialValues]);
 
-  const handleChange = (
-    event: ChangeEvent<
-      HTMLInputElement |
-      HTMLSelectElement
-    >,
+  const setRoot = (
+    key: keyof BienFormData,
+    value: BienFormData[keyof BienFormData],
   ) => {
-    const { name, value } =
-      event.target;
-
-    setFormData(
-      (previous) => ({
-        ...previous,
-
-        [name]:
-          name ===
-          "purchaseValue"
-            ? Number(value)
-            : value,
-      }),
-    );
-
+    setData((previous) => ({
+      ...previous,
+      [key]: value,
+    }));
     setError("");
   };
 
-  const handleTypeChange = (
-    event: ChangeEvent<HTMLSelectElement>,
-  ) => {
-    const type =
-      event.target
-        .value as BienFormData["type"];
-
-    setFormData((previous) => ({
+  const setStatus = (status: AssetStatus) => {
+    setData((previous) => ({
       ...previous,
+      assetStatus: status,
+      assignment:
+        status === "IN_USE" ? previous.assignment : "",
+      assignmentAr:
+        status === "IN_USE" ? previous.assignmentAr : "",
+    }));
+  };
 
+  const setType = (type: AssetType) => {
+    setData((previous) => ({
+      ...previous,
       type,
-
       vehicleDetails:
         type === "VEHICLE"
-          ? previous.vehicleDetails ??
-            {}
+          ? previous.vehicleDetails ?? {}
           : undefined,
-
       machineDetails:
         type === "MACHINE"
-          ? previous.machineDetails ??
-            {}
+          ? previous.machineDetails ?? {}
           : undefined,
-
       realEstateDetails:
         type === "REAL_ESTATE"
-          ? previous.realEstateDetails ??
-            {}
+          ? previous.realEstateDetails ?? {}
           : undefined,
     }));
   };
 
-  const updateVehicle = (
-    field: string,
-    value: string | number,
-  ) => {
-    setFormData((previous) => ({
-      ...previous,
-
-      vehicleDetails: {
-        ...previous.vehicleDetails,
-
-        [field]: value,
-      },
-    }));
-  };
-
-  const updateMachine = (
-    field: string,
-    value: string,
-  ) => {
-    setFormData((previous) => ({
-      ...previous,
-
-      machineDetails: {
-        ...previous.machineDetails,
-
-        [field]: value,
-      },
-    }));
-  };
-
-  const updateRealEstate = (
-    field: string,
-    value: string | number,
-  ) => {
-    setFormData((previous) => ({
-      ...previous,
-
-      realEstateDetails: {
-        ...previous.realEstateDetails,
-
-        [field]: value,
-      },
-    }));
-  };
-
-  const handleSubmit = async (
-    event: FormEvent<HTMLFormElement>,
-  ) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
 
     if (
-      !formData.designation.trim() ||
-      !formData.designationAr.trim() ||
-      !formData.acquisitionDate ||
-      !formData.assignment.trim() ||
-      !formData.assignmentAr.trim() ||
-      !formData.inventoryId.trim()
+      !data.designation.trim() ||
+      !data.designationAr.trim() ||
+      !data.inventoryId.trim() ||
+      !data.acquisitionDate
     ) {
       setError(
-        t("biens.form.required"),
+        tr(
+          "Veuillez remplir tous les champs obligatoires.",
+          "يرجى ملء جميع الحقول الإجبارية.",
+        ),
       );
+      return;
+    }
 
+    if (data.purchaseValue <= 0) {
+      setError(
+        tr(
+          "La valeur d’acquisition doit être supérieure à zéro.",
+          "يجب أن تكون قيمة الاقتناء أكبر من صفر.",
+        ),
+      );
       return;
     }
 
     if (
-      formData.purchaseValue <= 0
+      mode === "edit" &&
+      data.assetStatus === "IN_USE" &&
+      (!data.assignment.trim() ||
+        !data.assignmentAr.trim())
     ) {
       setError(
-        t(
-          "biens.form.invalidValue",
+        tr(
+          "L’affectation en français et en arabe est obligatoire lorsque le bien est en service.",
+          "الجهة المستعملة بالفرنسية والعربية إجبارية عندما يكون الممتلك قيد الاستعمال.",
         ),
       );
-
       return;
     }
 
-    setError("");
+    const status =
+      mode === "create" ? "AVAILABLE" : data.assetStatus;
 
     await onSubmit({
-      ...formData,
-
-      designation:
-        formData.designation.trim(),
-
-      designationAr:
-        formData.designationAr.trim(),
-
+      ...data,
+      assetStatus: status,
+      designation: data.designation.trim(),
+      designationAr: data.designationAr.trim(),
+      inventoryId: data.inventoryId.trim().toUpperCase(),
       assignment:
-        formData.assignment.trim(),
-
+        status === "IN_USE" ? data.assignment.trim() : "",
       assignmentAr:
-        formData.assignmentAr.trim(),
-
-      inventoryId:
-        formData.inventoryId
-          .trim()
-          .toUpperCase(),
+        status === "IN_USE" ? data.assignmentAr.trim() : "",
     });
   };
 
-  const inputClassName =
-    "mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100";
-
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-6"
-    >
+    <form onSubmit={submit} className="space-y-6" noValidate>
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-300">
           {error}
         </div>
       )}
 
-      {/* GENERAL INFORMATION */}
-
-      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6">
-        <div className="grid gap-5 md:grid-cols-2">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            {t(
-              "biens.form.type",
-            )}{" "}
-            *
-
-            <select
-              value={formData.type}
-              onChange={
-                handleTypeChange
-              }
-              className={
-                inputClassName
-              }
-            >
-              {assetTypes.map(
-                (type) => (
-                  <option
-                    key={type}
-                    value={type}
-                  >
-                    {t(
-                      `biens.types.${type}`,
-                    )}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            {t(
-              "biens.form.inventoryId",
-            )}{" "}
-            *
-
-            <input
-              type="text"
-              name="inventoryId"
-              value={
-                formData.inventoryId
-              }
-              onChange={
-                handleChange
-              }
-              placeholder="INV-2026-001"
-              className={
-                inputClassName
-              }
-            />
-          </label>
-
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            {t(
-              "biens.form.designation",
-            )}{" "}
-            *
-
-            <input
-              type="text"
-              name="designation"
-              value={
-                formData.designation
-              }
-              onChange={
-                handleChange
-              }
-              className={
-                inputClassName
-              }
-            />
-          </label>
-
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            {t(
-              "biens.form.designationAr",
-            )}{" "}
-            *
-
-            <input
-              type="text"
-              dir="rtl"
-              name="designationAr"
-              value={
-                formData.designationAr
-              }
-              onChange={
-                handleChange
-              }
-              className={
-                inputClassName
-              }
-            />
-          </label>
-
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            {t(
-              "biens.form.status",
-            )}{" "}
-            *
-
-            <select
-              name="assetStatus"
-              value={
-                formData.assetStatus
-              }
-              onChange={
-                handleChange
-              }
-              className={
-                inputClassName
-              }
-            >
-              {assetStatuses.map(
-                (status) => (
-                  <option
-                    key={status}
-                    value={status}
-                  >
-                    {t(
-                      `biens.statuses.${status}`,
-                    )}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            {t(
-              "biens.form.acquisitionDate",
-            )}{" "}
-            *
-
-            <input
-              type="date"
-              name="acquisitionDate"
-              value={
-                formData.acquisitionDate
-              }
-              onChange={
-                handleChange
-              }
-              className={
-                inputClassName
-              }
-            />
-          </label>
-
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            {t(
-              "biens.form.purchaseValue",
-            )}{" "}
-            *
-
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              name="purchaseValue"
-              value={
-                formData.purchaseValue
-              }
-              onChange={
-                handleChange
-              }
-              className={
-                inputClassName
-              }
-            />
-          </label>
-
-          <div />
-
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            {t(
-              "biens.form.assignment",
-            )}{" "}
-            *
-
-            <input
-              type="text"
-              name="assignment"
-              value={
-                formData.assignment
-              }
-              onChange={
-                handleChange
-              }
-              className={
-                inputClassName
-              }
-            />
-          </label>
-
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            {t(
-              "biens.form.assignmentAr",
-            )}{" "}
-            *
-
-            <input
-              type="text"
-              dir="rtl"
-              name="assignmentAr"
-              value={
-                formData.assignmentAr
-              }
-              onChange={
-                handleChange
-              }
-              className={
-                inputClassName
-              }
-            />
-          </label>
+      {mode === "create" && (
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900/50 dark:bg-green-950/20 dark:text-green-300">
+          {tr(
+            "Tout nouveau bien est créé automatiquement avec le statut « Disponible ». Le statut pourra être modifié ensuite.",
+            "يتم إنشاء كل ممتلك جديد تلقائياً بالحالة « متاح »، ويمكن تغيير الحالة لاحقاً.",
+          )}
         </div>
-      </article>
-
-      {/* VEHICLE */}
-
-      {formData.type ===
-        "VEHICLE" && (
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6">
-          <h2 className="font-bold text-slate-900 dark:text-white">
-            {t(
-              "biens.form.vehicleSection",
-            )}
-          </h2>
-
-          <div className="mt-5 grid gap-5 md:grid-cols-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              {t(
-                "biens.form.registrationNumber",
-              )}
-
-              <input
-                type="text"
-                value={
-                  formData
-                    .vehicleDetails
-                    ?.registrationNumber ??
-                  ""
-                }
-                onChange={(event) =>
-                  updateVehicle(
-                    "registrationNumber",
-                    event.target
-                      .value,
-                  )
-                }
-                className={
-                  inputClassName
-                }
-              />
-            </label>
-
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              {t(
-                "biens.form.brand",
-              )}
-
-              <input
-                type="text"
-                value={
-                  formData
-                    .vehicleDetails
-                    ?.brand ?? ""
-                }
-                onChange={(event) =>
-                  updateVehicle(
-                    "brand",
-                    event.target
-                      .value,
-                  )
-                }
-                className={
-                  inputClassName
-                }
-              />
-            </label>
-
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              {t(
-                "biens.form.model",
-              )}
-
-              <input
-                type="text"
-                value={
-                  formData
-                    .vehicleDetails
-                    ?.model ?? ""
-                }
-                onChange={(event) =>
-                  updateVehicle(
-                    "model",
-                    event.target
-                      .value,
-                  )
-                }
-                className={
-                  inputClassName
-                }
-              />
-            </label>
-
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              {t(
-                "biens.form.year",
-              )}
-
-              <input
-                type="number"
-                value={
-                  formData
-                    .vehicleDetails
-                    ?.year ?? ""
-                }
-                onChange={(event) =>
-                  updateVehicle(
-                    "year",
-                    Number(
-                      event.target
-                        .value,
-                    ),
-                  )
-                }
-                className={
-                  inputClassName
-                }
-              />
-            </label>
-
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200 md:col-span-2">
-              {t(
-                "biens.form.chassisNumber",
-              )}
-
-              <input
-                type="text"
-                value={
-                  formData
-                    .vehicleDetails
-                    ?.chassisNumber ??
-                  ""
-                }
-                onChange={(event) =>
-                  updateVehicle(
-                    "chassisNumber",
-                    event.target
-                      .value,
-                  )
-                }
-                className={
-                  inputClassName
-                }
-              />
-            </label>
-          </div>
-        </article>
       )}
 
-      {/* MACHINE */}
+      <Card title={tr("Informations générales", "المعلومات العامة")}>
+        <div className="grid gap-5 md:grid-cols-2">
+          <SelectField
+            label={tr("Type du bien", "نوع الممتلك")}
+            value={data.type}
+            onChange={(value) => setType(value as AssetType)}
+            options={types.map((value) => ({
+              value,
+              label: t(`biens.types.${value}`),
+            }))}
+          />
 
-      {formData.type ===
-        "MACHINE" && (
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6">
-          <h2 className="font-bold text-slate-900 dark:text-white">
-            {t(
-              "biens.form.machineSection",
+          <TextField
+            label={tr("Identifiant d’inventaire", "رقم الجرد")}
+            value={data.inventoryId}
+            onChange={(value) => setRoot("inventoryId", value)}
+            required
+          />
+
+          <TextField
+            label={tr("Désignation", "التسمية بالفرنسية")}
+            value={data.designation}
+            onChange={(value) => setRoot("designation", value)}
+            required
+          />
+
+          <TextField
+            label={tr("Désignation en arabe", "التسمية بالعربية")}
+            value={data.designationAr}
+            onChange={(value) => setRoot("designationAr", value)}
+            dir="rtl"
+            required
+          />
+
+          <TextField
+            type="date"
+            label={tr("Date d’acquisition", "تاريخ الاقتناء")}
+            value={data.acquisitionDate}
+            onChange={(value) => setRoot("acquisitionDate", value)}
+            required
+          />
+
+          <TextField
+            type="number"
+            label={tr("Valeur d’acquisition (DH)", "قيمة الاقتناء (درهم)")}
+            value={String(data.purchaseValue)}
+            onChange={(value) =>
+              setRoot("purchaseValue", Number(value))
+            }
+            required
+          />
+
+          {mode === "edit" && (
+            <SelectField
+              label={tr("Statut", "الحالة")}
+              value={data.assetStatus}
+              onChange={(value) => setStatus(value as AssetStatus)}
+              options={activeStatuses.map((value) => ({
+                value,
+                label: t(`biens.statuses.${value}`),
+              }))}
+            />
+          )}
+
+          {mode === "edit" &&
+            data.assetStatus === "IN_USE" && (
+              <>
+                <TextField
+                  label={tr(
+                    "Affectation / utilisateur du bien",
+                    "الجهة أو الشخص المستعمل للممتلك",
+                  )}
+                  value={data.assignment}
+                  onChange={(value) =>
+                    setRoot("assignment", value)
+                  }
+                  required
+                />
+
+                <TextField
+                  label={tr(
+                    "Affectation en arabe",
+                    "الجهة المستعملة بالعربية",
+                  )}
+                  value={data.assignmentAr}
+                  onChange={(value) =>
+                    setRoot("assignmentAr", value)
+                  }
+                  dir="rtl"
+                  required
+                />
+              </>
             )}
-          </h2>
+        </div>
+      </Card>
 
-          <div className="mt-5 grid gap-5 md:grid-cols-2">
+      {data.type === "VEHICLE" && (
+        <Card title={tr("Informations du véhicule", "معلومات المركبة")}>
+          <div className="grid gap-5 md:grid-cols-2">
+            <TextField
+              label={tr("Immatriculation", "رقم التسجيل")}
+              value={data.vehicleDetails?.registrationNumber ?? ""}
+              onChange={(value) =>
+                setData((previous) => ({
+                  ...previous,
+                  vehicleDetails: {
+                    ...previous.vehicleDetails,
+                    registrationNumber: value,
+                  },
+                }))
+              }
+            />
+            <TextField
+              label={tr("Marque", "العلامة")}
+              value={data.vehicleDetails?.brand ?? ""}
+              onChange={(value) =>
+                setData((previous) => ({
+                  ...previous,
+                  vehicleDetails: {
+                    ...previous.vehicleDetails,
+                    brand: value,
+                  },
+                }))
+              }
+            />
+            <TextField
+              label={tr("Modèle", "الطراز")}
+              value={data.vehicleDetails?.model ?? ""}
+              onChange={(value) =>
+                setData((previous) => ({
+                  ...previous,
+                  vehicleDetails: {
+                    ...previous.vehicleDetails,
+                    model: value,
+                  },
+                }))
+              }
+            />
+            <TextField
+              type="number"
+              label={tr("Année", "السنة")}
+              value={data.vehicleDetails?.year?.toString() ?? ""}
+              onChange={(value) =>
+                setData((previous) => ({
+                  ...previous,
+                  vehicleDetails: {
+                    ...previous.vehicleDetails,
+                    year: value ? Number(value) : undefined,
+                  },
+                }))
+              }
+            />
+            <TextField
+              label={tr("Numéro de châssis", "رقم الهيكل")}
+              value={data.vehicleDetails?.chassisNumber ?? ""}
+              onChange={(value) =>
+                setData((previous) => ({
+                  ...previous,
+                  vehicleDetails: {
+                    ...previous.vehicleDetails,
+                    chassisNumber: value,
+                  },
+                }))
+              }
+            />
+            <TextField
+              type="number"
+              label={tr(
+                "Puissance fiscale (CV)",
+                "القوة الجبائية (حصان)",
+              )}
+              value={
+                data.vehicleDetails?.fiscalHorsepower?.toString() ?? ""
+              }
+              onChange={(value) =>
+                setData((previous) => ({
+                  ...previous,
+                  vehicleDetails: {
+                    ...previous.vehicleDetails,
+                    fiscalHorsepower: value
+                      ? Number(value)
+                      : undefined,
+                  },
+                }))
+              }
+            />
+            <TextField
+              type="date"
+              label={tr(
+                "Date de première mise en circulation",
+                "تاريخ أول وضع في السير",
+              )}
+              value={data.vehicleDetails?.firstRegistrationDate ?? ""}
+              onChange={(value) =>
+                setData((previous) => ({
+                  ...previous,
+                  vehicleDetails: {
+                    ...previous.vehicleDetails,
+                    firstRegistrationDate: value || undefined,
+                  },
+                }))
+              }
+            />
+          </div>
+        </Card>
+      )}
+
+      {data.type === "MACHINE" && (
+        <Card title={tr("Informations de la machine", "معلومات الآلة")}>
+          <div className="grid gap-5 md:grid-cols-2">
             {[
-              [
-                "brand",
-                "biens.form.brand",
-              ],
-              [
-                "model",
-                "biens.form.model",
-              ],
-              [
-                "serialNumber",
-                "biens.form.serialNumber",
-              ],
+              ["brand", tr("Marque", "العلامة")],
+              ["model", tr("Modèle", "الطراز")],
+              ["serialNumber", tr("Numéro de série", "الرقم التسلسلي")],
               [
                 "technicalReference",
-                "biens.form.technicalReference",
+                tr("Référence technique", "المرجع التقني"),
               ],
-            ].map(
-              ([field, label]) => (
-                <label
-                  key={field}
-                  className="text-sm font-medium text-slate-700 dark:text-slate-200"
-                >
-                  {t(label)}
+            ].map(([key, label]) => (
+              <TextField
+                key={key}
+                label={label}
+                value={
+                  String(
+                    data.machineDetails?.[
+                      key as keyof NonNullable<
+                        BienFormData["machineDetails"]
+                      >
+                    ] ?? "",
+                  )
+                }
+                onChange={(value) =>
+                  setData((previous) => ({
+                    ...previous,
+                    machineDetails: {
+                      ...previous.machineDetails,
+                      [key]: value,
+                    },
+                  }))
+                }
+              />
+            ))}
 
-                  <input
-                    type="text"
-                    value={
-                      formData
-                        .machineDetails?.[
-                        field as keyof NonNullable<
-                          BienFormData["machineDetails"]
-                        >
-                      ] ?? ""
-                    }
-                    onChange={(
-                      event,
-                    ) =>
-                      updateMachine(
-                        field,
-                        event.target
-                          .value,
-                      )
-                    }
-                    className={
-                      inputClassName
-                    }
-                  />
-                </label>
-              ),
-            )}
+            <TextField
+              type="number"
+              label={tr("Puissance (kW)", "القدرة (كيلوواط)")}
+              value={data.machineDetails?.powerKw?.toString() ?? ""}
+              onChange={(value) =>
+                setData((previous) => ({
+                  ...previous,
+                  machineDetails: {
+                    ...previous.machineDetails,
+                    powerKw: value ? Number(value) : undefined,
+                  },
+                }))
+              }
+            />
           </div>
-        </article>
+        </Card>
       )}
 
-      {/* REAL ESTATE */}
-
-      {formData.type ===
-        "REAL_ESTATE" && (
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6">
-          <h2 className="font-bold text-slate-900 dark:text-white">
-            {t(
-              "biens.form.realEstateSection",
-            )}
-          </h2>
-
-          <div className="mt-5 grid gap-5 md:grid-cols-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              {t(
-                "biens.form.address",
-              )}
-
-              <input
-                type="text"
-                value={
-                  formData
-                    .realEstateDetails
-                    ?.address ?? ""
-                }
-                onChange={(event) =>
-                  updateRealEstate(
-                    "address",
-                    event.target
-                      .value,
-                  )
-                }
-                className={
-                  inputClassName
-                }
-              />
-            </label>
-
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              {t(
-                "biens.form.surface",
-              )}
-
-              <input
-                type="number"
-                min="0"
-                value={
-                  formData
-                    .realEstateDetails
-                    ?.surface ?? ""
-                }
-                onChange={(event) =>
-                  updateRealEstate(
-                    "surface",
-                    Number(
-                      event.target
-                        .value,
-                    ),
-                  )
-                }
-                className={
-                  inputClassName
-                }
-              />
-            </label>
-
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              {t(
-                "biens.form.landTitleNumber",
-              )}
-
-              <input
-                type="text"
-                value={
-                  formData
-                    .realEstateDetails
-                    ?.landTitleNumber ??
-                  ""
-                }
-                onChange={(event) =>
-                  updateRealEstate(
-                    "landTitleNumber",
-                    event.target
-                      .value,
-                  )
-                }
-                className={
-                  inputClassName
-                }
-              />
-            </label>
-
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              {t(
-                "biens.form.propertyType",
-              )}
-
-              <input
-                type="text"
-                value={
-                  formData
-                    .realEstateDetails
-                    ?.propertyType ??
-                  ""
-                }
-                onChange={(event) =>
-                  updateRealEstate(
-                    "propertyType",
-                    event.target
-                      .value,
-                  )
-                }
-                className={
-                  inputClassName
-                }
-              />
-            </label>
+      {data.type === "REAL_ESTATE" && (
+        <Card title={tr("Informations du bien immobilier", "معلومات العقار")}>
+          <div className="grid gap-5 md:grid-cols-2">
+            <TextField
+              label={tr("Adresse", "العنوان")}
+              value={data.realEstateDetails?.address ?? ""}
+              onChange={(value) =>
+                setData((previous) => ({
+                  ...previous,
+                  realEstateDetails: {
+                    ...previous.realEstateDetails,
+                    address: value,
+                  },
+                }))
+              }
+            />
+            <TextField
+              type="number"
+              label={tr("Superficie (m²)", "المساحة (م²)")}
+              value={data.realEstateDetails?.surface?.toString() ?? ""}
+              onChange={(value) =>
+                setData((previous) => ({
+                  ...previous,
+                  realEstateDetails: {
+                    ...previous.realEstateDetails,
+                    surface: value ? Number(value) : undefined,
+                  },
+                }))
+              }
+            />
+            <TextField
+              label={tr("Numéro du titre foncier", "رقم الرسم العقاري")}
+              value={data.realEstateDetails?.landTitleNumber ?? ""}
+              onChange={(value) =>
+                setData((previous) => ({
+                  ...previous,
+                  realEstateDetails: {
+                    ...previous.realEstateDetails,
+                    landTitleNumber: value,
+                  },
+                }))
+              }
+            />
+            <TextField
+              label={tr("Type de propriété", "نوع الملكية")}
+              value={data.realEstateDetails?.propertyType ?? ""}
+              onChange={(value) =>
+                setData((previous) => ({
+                  ...previous,
+                  realEstateDetails: {
+                    ...previous.realEstateDetails,
+                    propertyType: value,
+                  },
+                }))
+              }
+            />
+            <TextField
+              label={tr("Référence cadastrale", "المرجع المساحي")}
+              value={data.realEstateDetails?.cadastralReference ?? ""}
+              onChange={(value) =>
+                setData((previous) => ({
+                  ...previous,
+                  realEstateDetails: {
+                    ...previous.realEstateDetails,
+                    cadastralReference: value,
+                  },
+                }))
+              }
+            />
+            <SelectField
+              label={tr("Domaine", "المجال")}
+              value={data.realEstateDetails?.domain ?? ""}
+              onChange={(value) =>
+                setData((previous) => ({
+                  ...previous,
+                  realEstateDetails: {
+                    ...previous.realEstateDetails,
+                    domain: value
+                      ? (value as RealEstateDomain)
+                      : undefined,
+                  },
+                }))
+              }
+              options={[
+                {
+                  value: "",
+                  label: "—",
+                },
+                {
+                  value: "PUBLIC",
+                  label: tr("Domaine public", "الملك العام"),
+                },
+                {
+                  value: "PRIVATE",
+                  label: tr("Domaine privé", "الملك الخاص"),
+                },
+              ]}
+            />
           </div>
-        </article>
+        </Card>
       )}
-
-      {/* COMMON DOCUMENT MANAGER */}
 
       <DocumentManager
-        documents={
-          formData.documents
-        }
+        documents={data.documents}
         onChange={(documents) =>
-          setFormData(
-            (previous) => ({
-              ...previous,
-
-              documents,
-            }),
-          )
+          setData((previous) => ({
+            ...previous,
+            documents,
+          }))
         }
       />
 
@@ -819,14 +567,85 @@ function BienForm({
           disabled={loading}
           className="rounded-xl bg-orange-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:opacity-60"
         >
-          {loading
-            ? t(
-                "biens.form.saving",
-              )
-            : submitLabel}
+          {loading ? tr("Enregistrement...", "جارٍ الحفظ...") : submitLabel}
         </button>
       </div>
     </form>
+  );
+}
+
+function Card({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6">
+      <h2 className="mb-5 text-lg font-bold text-slate-900 dark:text-white">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+function TextField({
+  label,
+  value,
+  onChange,
+  type = "text",
+  dir,
+  required = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: "text" | "number" | "date";
+  dir?: "ltr" | "rtl";
+  required?: boolean;
+}) {
+  return (
+    <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+      {label} {required && <span className="text-red-500">*</span>}
+      <input
+        type={type}
+        dir={dir}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-orange-500 dark:border-slate-600 dark:bg-slate-900"
+      />
+    </label>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+      {label}
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-orange-500 dark:border-slate-600 dark:bg-slate-900"
+      >
+        {options.map((option) => (
+          <option key={option.value || "empty"} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

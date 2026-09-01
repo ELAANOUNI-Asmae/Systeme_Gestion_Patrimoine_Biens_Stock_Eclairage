@@ -1,4 +1,10 @@
-enum DocumentCategory { official, attachment }
+
+import 'dart:typed_data';
+
+enum DocumentCategory {
+  official,
+  attachment,
+}
 
 enum DocumentType {
   invoice,
@@ -26,6 +32,7 @@ class AppDocument {
     required this.category,
     this.expirationDate,
     this.reminderDaysBefore,
+    this.fileBytes,
   });
 
   final int id;
@@ -36,8 +43,10 @@ class AppDocument {
   final DocumentCategory category;
   final DateTime? expirationDate;
   final int? reminderDaysBefore;
+  final Uint8List? fileBytes;
 
-  bool get isOfficial => category == DocumentCategory.official;
+  bool get isOfficial =>
+      category == DocumentCategory.official;
 
   AppDocument copyWith({
     int? id,
@@ -48,6 +57,7 @@ class AppDocument {
     DocumentCategory? category,
     DateTime? expirationDate,
     int? reminderDaysBefore,
+    Uint8List? fileBytes,
   }) {
     return AppDocument(
       id: id ?? this.id,
@@ -57,7 +67,9 @@ class AppDocument {
       uploadDate: uploadDate ?? this.uploadDate,
       category: category ?? this.category,
       expirationDate: expirationDate ?? this.expirationDate,
-      reminderDaysBefore: reminderDaysBefore ?? this.reminderDaysBefore,
+      reminderDaysBefore:
+          reminderDaysBefore ?? this.reminderDaysBefore,
+      fileBytes: fileBytes ?? this.fileBytes,
     );
   }
 }

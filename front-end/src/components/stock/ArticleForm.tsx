@@ -1,18 +1,20 @@
+
 import {
+  useMemo,
   useState,
   type ChangeEvent,
   type FormEvent,
 } from "react";
-
-import {
-  useTranslation,
-} from "react-i18next";
+import { useTranslation } from "react-i18next";
 
 import DocumentManager from "../documents/DocumentManager";
 
-import type {
-  StockArticleFormData,
-  StockUnit,
+import {
+  calculateTotalHt,
+  calculateTotalTtc,
+  calculateUnitPriceTtc,
+  type StockArticleFormData,
+  type StockUnit,
 } from "../../types/stock";
 
 type ArticleFormProps = {
@@ -26,8 +28,8 @@ type ArticleFormProps = {
 
 const emptyValues: StockArticleFormData = {
   reference: "",
-  serialNumber: "",
   barcode: "",
+  brand: "",
   designation: "",
   designationAr: "",
   category: "",
@@ -37,6 +39,8 @@ const emptyValues: StockArticleFormData = {
   unit: "UNITE",
   location: "",
   locationAr: "",
+  unitPriceHt: 0,
+  vatRate: 20,
   documents: [],
 };
 
@@ -55,49 +59,61 @@ function ArticleForm({
   loading = false,
   onSubmit,
 }: ArticleFormProps) {
-  const { t } =
-    useTranslation();
+  const { i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith("ar");
+  const tr = (fr: string, ar: string) => (isArabic ? ar : fr);
 
-  const [
-    formData,
-    setFormData,
-  ] =
-    useState<StockArticleFormData>(
-      () => ({
-        ...initialValues,
-        documents: [
-          ...initialValues.documents,
-        ],
-      }),
-    );
+  const [formData, setFormData] =
+    useState<StockArticleFormData>(() => ({
+      ...initialValues,
+      documents: [...initialValues.documents],
+    }));
 
-  const [
-    error,
-    setError,
-  ] = useState("");
+  const [error, setError] = useState("");
+
+  const priceSummary = useMemo(
+    () => ({
+      unitTtc: calculateUnitPriceTtc(
+        formData.unitPriceHt,
+        formData.vatRate,
+      ),
+      totalHt: calculateTotalHt(
+        formData.quantity,
+        formData.unitPriceHt,
+      ),
+      totalTtc: calculateTotalTtc(
+        formData.quantity,
+        formData.unitPriceHt,
+        formData.vatRate,
+      ),
+    }),
+    [
+      formData.quantity,
+      formData.unitPriceHt,
+      formData.vatRate,
+    ],
+  );
 
   const handleChange = (
     event: ChangeEvent<
-      | HTMLInputElement
-      | HTMLSelectElement
+      HTMLInputElement | HTMLSelectElement
     >,
   ) => {
-    const {
-      name,
-      value,
-    } = event.target;
+    const { name, value } = event.target;
 
-    setFormData(
-      (previous) => ({
-        ...previous,
-        [name]:
-          name === "quantity" ||
-          name ===
-            "minimumQuantity"
-            ? Number(value)
-            : value,
-      }),
-    );
+    const numericFields = new Set([
+      "quantity",
+      "minimumQuantity",
+      "unitPriceHt",
+      "vatRate",
+    ]);
+
+    setFormData((previous) => ({
+      ...previous,
+      [name]: numericFields.has(name)
+        ? Number(value)
+        : value,
+    }));
 
     setError("");
   };
@@ -109,6 +125,8 @@ function ArticleForm({
 
     if (
       !formData.reference.trim() ||
+      !formData.barcode.trim() ||
+      !formData.brand.trim() ||
       !formData.designation.trim() ||
       !formData.designationAr.trim() ||
       !formData.category.trim() ||
@@ -117,26 +135,45 @@ function ArticleForm({
       !formData.locationAr.trim()
     ) {
       setError(
-        t("stock.form.required"),
-      );
-      return;
-    }
-
-    if (formData.quantity < 0) {
-      setError(
-        t(
-          "stock.form.quantityError",
+        tr(
+          "Tous les champs obligatoires doivent être remplis.",
+          "يجب ملء جميع الحقول الإجبارية.",
         ),
       );
       return;
     }
 
     if (
+      formData.quantity < 0 ||
       formData.minimumQuantity < 0
     ) {
       setError(
-        t(
-          "stock.form.minimumQuantityError",
+        tr(
+          "Les quantités ne peuvent pas être négatives.",
+          "لا يمكن أن تكون الكميات سالبة.",
+        ),
+      );
+      return;
+    }
+
+    if (formData.unitPriceHt <= 0) {
+      setError(
+        tr(
+          "Le prix unitaire HT doit être supérieur à zéro.",
+          "يجب أن يكون ثمن الوحدة بدون الضريبة أكبر من صفر.",
+        ),
+      );
+      return;
+    }
+
+    if (
+      formData.vatRate < 0 ||
+      formData.vatRate > 100
+    ) {
+      setError(
+        tr(
+          "Le taux de TVA doit être compris entre 0 et 100.",
+          "يجب أن تكون نسبة الضريبة بين 0 و100.",
         ),
       );
       return;
@@ -146,33 +183,16 @@ function ArticleForm({
 
     await onSubmit({
       ...formData,
-      reference:
-        formData.reference
-          .trim()
-          .toUpperCase(),
-      serialNumber:
-        formData.serialNumber
-          ?.trim()
-          .toUpperCase() ||
-        undefined,
-      barcode:
-        formData.barcode
-          ?.trim() || undefined,
-      designation:
-        formData.designation.trim(),
-      designationAr:
-        formData.designationAr.trim(),
-      category:
-        formData.category.trim(),
-      categoryAr:
-        formData.categoryAr.trim(),
-      location:
-        formData.location.trim(),
-      locationAr:
-        formData.locationAr.trim(),
-      documents: [
-        ...formData.documents,
-      ],
+      reference: formData.reference.trim().toUpperCase(),
+      barcode: formData.barcode.trim(),
+      brand: formData.brand.trim(),
+      designation: formData.designation.trim(),
+      designationAr: formData.designationAr.trim(),
+      category: formData.category.trim(),
+      categoryAr: formData.categoryAr.trim(),
+      location: formData.location.trim(),
+      locationAr: formData.locationAr.trim(),
+      documents: [...formData.documents],
     });
   };
 
@@ -183,10 +203,7 @@ function ArticleForm({
     "text-sm font-medium text-slate-700 dark:text-slate-200";
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-6"
-    >
+    <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
           {error}
@@ -194,28 +211,14 @@ function ArticleForm({
       )}
 
       <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            {t(
-              "stock.form.generalInformation",
-            )}
-          </h2>
-
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {t(
-              "stock.form.generalDescription",
-            )}
-          </p>
-        </div>
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+          {tr("Informations générales", "المعلومات العامة")}
+        </h2>
 
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <label className={labelClassName}>
-            {t(
-              "stock.form.reference",
-            )}{" "}
-            *
+            {tr("Référence", "المرجع")} *
             <input
-              type="text"
               name="reference"
               value={formData.reference}
               onChange={handleChange}
@@ -225,217 +228,139 @@ function ArticleForm({
           </label>
 
           <label className={labelClassName}>
-            {t(
-              "stock.form.unit",
-            )}{" "}
-            *
+            {tr("Code-barres", "الباركود")} *
+            <input
+              name="barcode"
+              value={formData.barcode}
+              onChange={handleChange}
+              placeholder="6110001234567"
+              className={inputClassName}
+              inputMode="numeric"
+            />
+            <span className="mt-1 block text-xs text-slate-500">
+              {tr(
+                "Le code-barres est l’identifiant série de l’article.",
+                "الباركود هو المعرّف التسلسلي للمادة.",
+              )}
+            </span>
+          </label>
+
+          <label className={labelClassName}>
+            {tr("Marque", "العلامة")} *
+            <input
+              name="brand"
+              value={formData.brand}
+              onChange={handleChange}
+              placeholder={tr("Ex. Philips", "مثال Philips")}
+              className={inputClassName}
+            />
+          </label>
+
+          <label className={labelClassName}>
+            {tr("Unité", "الوحدة")} *
             <select
               name="unit"
               value={formData.unit}
               onChange={handleChange}
               className={inputClassName}
             >
-              {units.map(
-                (unit) => (
-                  <option
-                    key={unit}
-                    value={unit}
-                  >
-                    {t(
-                      `stock.units.${unit}`,
-                    )}
-                  </option>
-                ),
-              )}
+              {units.map((unit) => (
+                <option key={unit} value={unit}>
+                  {unit}
+                </option>
+              ))}
             </select>
-          </label>
-
-          <label className={labelClassName}>
-            {t(
-              "stock.form.serialNumber",
-            )}
-            <input
-              type="text"
-              name="serialNumber"
-              value={
-                formData.serialNumber ??
-                ""
-              }
-              onChange={handleChange}
-              placeholder="SN-2026-001"
-              className={inputClassName}
-            />
-          </label>
-
-          <label className={labelClassName}>
-            {t(
-              "stock.form.barcode",
-            )}
-            <input
-              type="text"
-              name="barcode"
-              value={
-                formData.barcode ?? ""
-              }
-              onChange={handleChange}
-              placeholder="6110001234567"
-              className={inputClassName}
-              inputMode="numeric"
-            />
           </label>
         </div>
       </article>
 
       <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6">
         <div className="grid gap-6 lg:grid-cols-2">
-          <div>
-            <h2 className="font-bold text-slate-900 dark:text-white">
-              {t(
-                "stock.form.frenchInformation",
-              )}
+          <div className="space-y-4">
+            <h2 className="font-bold">
+              {tr("Informations en français", "المعلومات بالفرنسية")}
             </h2>
 
-            <div className="mt-4 space-y-4">
-              <label className={labelClassName}>
-                {t(
-                  "stock.form.designationFr",
-                )}{" "}
-                *
-                <input
-                  type="text"
-                  name="designation"
-                  value={
-                    formData.designation
-                  }
-                  onChange={handleChange}
-                  placeholder={t(
-                    "stock.form.designationFrPlaceholder",
-                  )}
-                  className={inputClassName}
-                />
-              </label>
+            <label className={labelClassName}>
+              {tr("Désignation", "التسمية")} *
+              <input
+                name="designation"
+                value={formData.designation}
+                onChange={handleChange}
+                className={inputClassName}
+              />
+            </label>
 
-              <label className={labelClassName}>
-                {t(
-                  "stock.form.categoryFr",
-                )}{" "}
-                *
-                <input
-                  type="text"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  placeholder={t(
-                    "stock.form.categoryFrPlaceholder",
-                  )}
-                  className={inputClassName}
-                />
-              </label>
+            <label className={labelClassName}>
+              {tr("Catégorie", "الفئة")} *
+              <input
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                className={inputClassName}
+              />
+            </label>
 
-              <label className={labelClassName}>
-                {t(
-                  "stock.form.locationFr",
-                )}{" "}
-                *
-                <input
-                  type="text"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleChange}
-                  placeholder={t(
-                    "stock.form.locationFrPlaceholder",
-                  )}
-                  className={inputClassName}
-                />
-              </label>
-            </div>
+            <label className={labelClassName}>
+              {tr("Emplacement", "المكان")} *
+              <input
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
+                className={inputClassName}
+              />
+            </label>
           </div>
 
-          <div>
-            <h2 className="font-bold text-slate-900 dark:text-white">
-              {t(
-                "stock.form.arabicInformation",
-              )}
+          <div className="space-y-4">
+            <h2 className="font-bold">
+              {tr("Informations en arabe", "المعلومات بالعربية")}
             </h2>
 
-            <div className="mt-4 space-y-4">
-              <label className={labelClassName}>
-                {t(
-                  "stock.form.designationAr",
-                )}{" "}
-                *
-                <input
-                  type="text"
-                  dir="rtl"
-                  name="designationAr"
-                  value={
-                    formData.designationAr
-                  }
-                  onChange={handleChange}
-                  placeholder={t(
-                    "stock.form.designationArPlaceholder",
-                  )}
-                  className={inputClassName}
-                />
-              </label>
+            <label className={labelClassName}>
+              {tr("Désignation en arabe", "التسمية بالعربية")} *
+              <input
+                dir="rtl"
+                name="designationAr"
+                value={formData.designationAr}
+                onChange={handleChange}
+                className={inputClassName}
+              />
+            </label>
 
-              <label className={labelClassName}>
-                {t(
-                  "stock.form.categoryAr",
-                )}{" "}
-                *
-                <input
-                  type="text"
-                  dir="rtl"
-                  name="categoryAr"
-                  value={
-                    formData.categoryAr
-                  }
-                  onChange={handleChange}
-                  placeholder={t(
-                    "stock.form.categoryArPlaceholder",
-                  )}
-                  className={inputClassName}
-                />
-              </label>
+            <label className={labelClassName}>
+              {tr("Catégorie en arabe", "الفئة بالعربية")} *
+              <input
+                dir="rtl"
+                name="categoryAr"
+                value={formData.categoryAr}
+                onChange={handleChange}
+                className={inputClassName}
+              />
+            </label>
 
-              <label className={labelClassName}>
-                {t(
-                  "stock.form.locationAr",
-                )}{" "}
-                *
-                <input
-                  type="text"
-                  dir="rtl"
-                  name="locationAr"
-                  value={
-                    formData.locationAr
-                  }
-                  onChange={handleChange}
-                  placeholder={t(
-                    "stock.form.locationArPlaceholder",
-                  )}
-                  className={inputClassName}
-                />
-              </label>
-            </div>
+            <label className={labelClassName}>
+              {tr("Emplacement en arabe", "المكان بالعربية")} *
+              <input
+                dir="rtl"
+                name="locationAr"
+                value={formData.locationAr}
+                onChange={handleChange}
+                className={inputClassName}
+              />
+            </label>
           </div>
         </div>
       </article>
 
       <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6">
-        <h2 className="font-bold text-slate-900 dark:text-white">
-          {t(
-            "stock.form.stockInformation",
-          )}
+        <h2 className="font-bold">
+          {tr("Stock et prix", "المخزون والثمن")}
         </h2>
 
         <div className="mt-4 grid gap-5 md:grid-cols-2">
           <label className={labelClassName}>
-            {t(
-              "stock.form.quantity",
-            )}{" "}
-            *
+            {tr("Quantité", "الكمية")} *
             <input
               type="number"
               min="0"
@@ -447,33 +372,68 @@ function ArticleForm({
           </label>
 
           <label className={labelClassName}>
-            {t(
-              "stock.form.minimumQuantity",
-            )}{" "}
-            *
+            {tr("Seuil minimum", "الحد الأدنى")} *
             <input
               type="number"
               min="0"
               name="minimumQuantity"
-              value={
-                formData.minimumQuantity
-              }
+              value={formData.minimumQuantity}
               onChange={handleChange}
               className={inputClassName}
             />
           </label>
+
+          <label className={labelClassName}>
+            {tr("Prix unitaire HT (DH)", "ثمن الوحدة بدون الضريبة (درهم)")} *
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              name="unitPriceHt"
+              value={formData.unitPriceHt}
+              onChange={handleChange}
+              className={inputClassName}
+            />
+          </label>
+
+          <label className={labelClassName}>
+            {tr("TVA (%)", "الضريبة (%)")} *
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              name="vatRate"
+              value={formData.vatRate}
+              onChange={handleChange}
+              className={inputClassName}
+            />
+          </label>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <PriceCard
+            label={tr("Prix unitaire TTC", "ثمن الوحدة شامل الضريبة")}
+            value={priceSummary.unitTtc}
+          />
+          <PriceCard
+            label={tr("Total HT du stock", "إجمالي المخزون بدون الضريبة")}
+            value={priceSummary.totalHt}
+          />
+          <PriceCard
+            label={tr("Total TTC du stock", "إجمالي المخزون شامل الضريبة")}
+            value={priceSummary.totalTtc}
+          />
         </div>
       </article>
 
       <DocumentManager
         documents={formData.documents}
         onChange={(documents) =>
-          setFormData(
-            (previous) => ({
-              ...previous,
-              documents,
-            }),
-          )
+          setFormData((previous) => ({
+            ...previous,
+            documents,
+          }))
         }
       />
 
@@ -484,13 +444,30 @@ function ArticleForm({
           className="rounded-xl bg-orange-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:opacity-60"
         >
           {loading
-            ? t(
-                "stock.form.saving",
-              )
+            ? tr("Enregistrement", "جارٍ الحفظ")
             : submitLabel}
         </button>
       </div>
     </form>
+  );
+}
+
+function PriceCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-900">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <p className="mt-2 text-lg font-bold">
+        {value.toFixed(2)} DH
+      </p>
+    </div>
   );
 }
 

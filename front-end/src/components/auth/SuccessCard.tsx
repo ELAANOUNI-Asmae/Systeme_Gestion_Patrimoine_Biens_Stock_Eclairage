@@ -33,7 +33,7 @@ function SuccessCard() {
           )}
         </h1>
 
-        <p className="mb-8 leading-7 text-slate-600 dark:text-slate-400">
+        <p className="mb-8 text-slate-600 dark:text-slate-400">
           {t(
             "auth.forgot.successDescription",
           )}

@@ -1,3 +1,4 @@
+
 export type DocumentCategory =
   | "OFFICIAL"
   | "ATTACHMENT";
@@ -19,20 +20,12 @@ export type DocumentType =
 
 export interface AppDocument {
   id: number;
-
   name: string;
-
   category: DocumentCategory;
-
   type: DocumentType;
-
   fileName: string;
-
   uploadDate: string;
-
-  description?: string;
-
   expirationDate?: string;
-
   reminderDaysBefore?: number;
+  file?: File;
 }

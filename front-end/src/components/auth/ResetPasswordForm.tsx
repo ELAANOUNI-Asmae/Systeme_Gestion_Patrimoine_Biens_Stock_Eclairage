@@ -4,9 +4,9 @@ import {
 } from "react";
 
 import {
+  ArrowLeft,
   Eye,
   EyeOff,
-  ArrowLeft,
 } from "lucide-react";
 
 import {
@@ -143,11 +143,7 @@ function ResetPasswordForm({
       );
 
       onSuccess();
-    } catch (caughtError) {
-      console.error(
-        caughtError,
-      );
-
+    } catch {
       setError(
         t(
           "auth.reset.error",
@@ -157,6 +153,24 @@ function ResetPasswordForm({
       setLoading(false);
     }
   };
+
+  const passwordVisibilityLabel =
+    showPassword
+      ? t(
+          "auth.reset.hidePassword",
+        )
+      : t(
+          "auth.reset.showPassword",
+        );
+
+  const confirmationVisibilityLabel =
+    showConfirmPassword
+      ? t(
+          "auth.reset.hideConfirmation",
+        )
+      : t(
+          "auth.reset.showConfirmation",
+        );
 
   return (
     <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-lg transition-colors dark:border-slate-700 dark:bg-slate-900">
@@ -185,8 +199,6 @@ function ResetPasswordForm({
         className="space-y-5"
         noValidate
       >
-        {/* NEW PASSWORD */}
-
         <div>
           <label
             htmlFor="password"
@@ -223,24 +235,7 @@ function ResetPasswordForm({
                 loading
               }
               autoComplete="new-password"
-              className="
-                w-full rounded-lg border border-slate-300
-                bg-white px-4 py-3 pe-12
-                text-slate-900 outline-none transition
-                placeholder:text-slate-400
-                focus:border-orange-500
-                focus:ring-2 focus:ring-orange-100
-                disabled:cursor-not-allowed
-                disabled:bg-slate-100
-
-                dark:border-slate-600
-                dark:bg-slate-950
-                dark:text-white
-                dark:placeholder:text-slate-500
-                dark:focus:border-orange-500
-                dark:focus:ring-orange-500/10
-                dark:disabled:bg-slate-800
-              "
+              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 pe-12 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-orange-500 dark:focus:ring-orange-500/10 dark:disabled:bg-slate-800"
             />
 
             <button
@@ -255,33 +250,12 @@ function ResetPasswordForm({
                 loading
               }
               title={
-                showPassword
-                  ? t(
-                      "auth.reset.hidePassword",
-                    )
-                  : t(
-                      "auth.reset.showPassword",
-                    )
+                passwordVisibilityLabel
               }
               aria-label={
-                showPassword
-                  ? t(
-                      "auth.reset.hidePassword",
-                    )
-                  : t(
-                      "auth.reset.showPassword",
-                    )
+                passwordVisibilityLabel
               }
-              className="
-                absolute inset-y-0 inset-e-0
-                flex items-center px-4
-                text-slate-500 transition
-                hover:text-slate-700
-                disabled:cursor-not-allowed
-
-                dark:text-slate-400
-                dark:hover:text-slate-200
-              "
+              className="absolute inset-y-0 inset-e-0 flex items-center px-4 text-slate-500 transition hover:text-slate-700 disabled:cursor-not-allowed dark:text-slate-400 dark:hover:text-slate-200"
             >
               {showPassword ? (
                 <EyeOff
@@ -295,8 +269,6 @@ function ResetPasswordForm({
             </button>
           </div>
         </div>
-
-        {/* CONFIRM PASSWORD */}
 
         <div>
           <label
@@ -336,24 +308,7 @@ function ResetPasswordForm({
                 loading
               }
               autoComplete="new-password"
-              className="
-                w-full rounded-lg border border-slate-300
-                bg-white px-4 py-3 pe-12
-                text-slate-900 outline-none transition
-                placeholder:text-slate-400
-                focus:border-orange-500
-                focus:ring-2 focus:ring-orange-100
-                disabled:cursor-not-allowed
-                disabled:bg-slate-100
-
-                dark:border-slate-600
-                dark:bg-slate-950
-                dark:text-white
-                dark:placeholder:text-slate-500
-                dark:focus:border-orange-500
-                dark:focus:ring-orange-500/10
-                dark:disabled:bg-slate-800
-              "
+              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 pe-12 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-orange-500 dark:focus:ring-orange-500/10 dark:disabled:bg-slate-800"
             />
 
             <button
@@ -368,33 +323,12 @@ function ResetPasswordForm({
                 loading
               }
               title={
-                showConfirmPassword
-                  ? t(
-                      "auth.reset.hideConfirmation",
-                    )
-                  : t(
-                      "auth.reset.showConfirmation",
-                    )
+                confirmationVisibilityLabel
               }
               aria-label={
-                showConfirmPassword
-                  ? t(
-                      "auth.reset.hideConfirmation",
-                    )
-                  : t(
-                      "auth.reset.showConfirmation",
-                    )
+                confirmationVisibilityLabel
               }
-              className="
-                absolute inset-y-0 enset-e-0
-                flex items-center px-4
-                text-slate-500 transition
-                hover:text-slate-700
-                disabled:cursor-not-allowed
-
-                dark:text-slate-400
-                dark:hover:text-slate-200
-              "
+              className="absolute inset-y-0 inset-e-0 flex items-center px-4 text-slate-500 transition hover:text-slate-700 disabled:cursor-not-allowed dark:text-slate-400 dark:hover:text-slate-200"
             >
               {showConfirmPassword ? (
                 <EyeOff

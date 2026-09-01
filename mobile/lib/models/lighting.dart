@@ -1,7 +1,69 @@
 import 'app_document.dart';
 
-enum LightStatus { active, inactive, damaged, underMaintenance }
-enum FailureStatus { reported, inProgress, resolved }
+enum LightStatus {
+  active,
+  inactive,
+  damaged,
+  underMaintenance,
+}
+
+enum FailureStatus {
+  reported,
+  inProgress,
+  resolved,
+}
+
+class Technician {
+  const Technician({
+    required this.id,
+    required this.name,
+    required this.nameAr,
+    required this.phone,
+    required this.localisation,
+    required this.latitude,
+    required this.longitude,
+    this.active = true,
+  });
+
+  final int id;
+  final String name;
+  final String nameAr;
+  final String phone;
+  final String localisation;
+  final double latitude;
+  final double longitude;
+  final bool active;
+}
+
+const demoTechnicians = <Technician>[
+  Technician(
+    id: 1,
+    name: 'Yassine Amrani',
+    nameAr: 'ياسين العمراني',
+    phone: '0611000001',
+    localisation: 'Hay Mohammadi, Agadir',
+    latitude: 30.4284,
+    longitude: -9.5967,
+  ),
+  Technician(
+    id: 2,
+    name: 'Karim El Idrissi',
+    nameAr: 'كريم الإدريسي',
+    phone: '0611000002',
+    localisation: 'Talborjt, Agadir',
+    latitude: 30.4212,
+    longitude: -9.5905,
+  ),
+  Technician(
+    id: 3,
+    name: 'Ahmed Ait Lahcen',
+    nameAr: 'أحمد أيت لحسن',
+    phone: '0611000003',
+    localisation: 'Dcheira El Jihadia',
+    latitude: 30.3728,
+    longitude: -9.5348,
+  ),
+];
 
 class LightPoint {
   LightPoint({
@@ -9,32 +71,46 @@ class LightPoint {
     required this.reference,
     required this.designation,
     required this.designationAr,
-    required this.zone,
-    required this.zoneAr,
-    required this.address,
-    required this.addressAr,
+    String? localisation,
+    String? zone,
+    String? zoneAr,
+    String? address,
+    String? addressAr,
     required this.latitude,
     required this.longitude,
     required this.status,
     required this.installationDate,
     required this.power,
     required this.documents,
-  });
+  }) : localisation = (
+          localisation ??
+          address ??
+          addressAr ??
+          zone ??
+          zoneAr ??
+          ''
+        ).trim();
 
   final int id;
   String reference;
   String designation;
   String designationAr;
-  String zone;
-  String zoneAr;
-  String address;
-  String addressAr;
+  String localisation;
   double latitude;
   double longitude;
   LightStatus status;
   DateTime installationDate;
   double power;
   List<AppDocument> documents;
+
+  @Deprecated('Use localisation')
+  String get zone => localisation;
+  @Deprecated('Use localisation')
+  String get zoneAr => localisation;
+  @Deprecated('Use localisation')
+  String get address => localisation;
+  @Deprecated('Use localisation')
+  String get addressAr => localisation;
 }
 
 class FailureReport {
@@ -67,18 +143,41 @@ class Intervention {
   Intervention({
     required this.id,
     required this.failureId,
-    required this.technician,
+    int? technicianId,
+    String? technicianName,
+    String? technicianNameAr,
+    String? technicianLocalisation,
+    String? technician,
     required this.interventionDate,
     required this.description,
     required this.completed,
     required this.documents,
-  });
+    List<AppDocument>? photos,
+    this.completedAt,
+    this.report,
+    this.cost,
+  })  : technicianId = technicianId ?? 0,
+        technicianName = technicianName ?? technician ?? '',
+        technicianNameAr =
+            technicianNameAr ?? technicianName ?? technician ?? '',
+        technicianLocalisation = technicianLocalisation ?? '',
+        photos = photos ?? <AppDocument>[];
 
   final int id;
   final int failureId;
-  final String technician;
+  final int technicianId;
+  final String technicianName;
+  final String technicianNameAr;
+  final String technicianLocalisation;
   final DateTime interventionDate;
   final String description;
   bool completed;
+  DateTime? completedAt;
+  String? report;
+  double? cost;
+  final List<AppDocument> photos;
   final List<AppDocument> documents;
+
+  @Deprecated('Use technicianName')
+  String get technician => technicianName;
 }

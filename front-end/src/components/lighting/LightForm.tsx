@@ -1,42 +1,32 @@
 import {
-  useEffect,
   useState,
   type ChangeEvent,
   type FormEvent,
 } from "react";
-
-import {
-  useTranslation,
-} from "react-i18next";
+import { useTranslation } from "react-i18next";
 
 import DocumentManager from "../documents/DocumentManager";
-
 import type {
   LightFormData,
   LightStatus,
 } from "../../types/lighting";
 
-type LightFormProps = {
+type Props = {
   initialValues?: LightFormData;
   submitLabel: string;
   loading?: boolean;
-  onSubmit: (
-    data: LightFormData,
-  ) => Promise<void> | void;
+  onSubmit: (data: LightFormData) => Promise<void> | void;
 };
 
 const emptyValues: LightFormData = {
   reference: "",
   designation: "",
   designationAr: "",
-  zone: "",
-  zoneAr: "",
-  address: "",
-  addressAr: "",
+  localisation: "",
   latitude: 30.4208,
   longitude: -9.5981,
   status: "ACTIVE",
-  installationDate: "",
+  installationDate: new Date().toISOString().slice(0, 10),
   power: 0,
   documents: [],
 };
@@ -49,457 +39,258 @@ const statuses: LightStatus[] = [
 ];
 
 function LightForm({
-  initialValues = emptyValues,
+  initialValues,
   submitLabel,
   loading = false,
   onSubmit,
-}: LightFormProps) {
-  const { t } =
-    useTranslation();
+}: Props) {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith("ar");
+  const tr = (fr: string, ar: string) => (isArabic ? ar : fr);
 
-  const [
-    formData,
-    setFormData,
-  ] =
-    useState<LightFormData>(
-      initialValues,
-    );
-
-  const [
-    error,
-    setError,
-  ] = useState("");
-
-  useEffect(() => {
-    setFormData(
-      initialValues,
-    );
-  }, [initialValues]);
+  const [formData, setFormData] = useState<LightFormData>(() =>
+    initialValues
+      ? { ...initialValues, documents: [...initialValues.documents] }
+      : { ...emptyValues, documents: [] },
+  );
+  const [error, setError] = useState("");
+  const isEdit = Boolean(initialValues);
 
   const handleChange = (
-    event: ChangeEvent<
-      | HTMLInputElement
-      | HTMLSelectElement
-    >,
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    const {
-      name,
-      value,
-    } = event.target;
+    const { name, value } = event.target;
 
-    setFormData(
-      (previous) => ({
-        ...previous,
-
-        [name]:
-          name === "power" ||
-          name === "latitude" ||
-          name === "longitude"
-            ? Number(value)
-            : value,
-      }),
-    );
-
+    setFormData((previous) => ({
+      ...previous,
+      [name]:
+        name === "power" ||
+        name === "latitude" ||
+        name === "longitude"
+          ? Number(value)
+          : value,
+    }));
     setError("");
   };
 
-  const handleSubmit =
-    async (
-      event: FormEvent<HTMLFormElement>,
-    ) => {
-      event.preventDefault();
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
-      if (
-        !formData.reference.trim() ||
-        !formData.designation.trim() ||
-        !formData.designationAr.trim() ||
-        !formData.zone.trim() ||
-        !formData.zoneAr.trim() ||
-        !formData.address.trim() ||
-        !formData.addressAr.trim() ||
-        !formData.installationDate
-      ) {
-        setError(
-          t(
-            "lighting.form.required",
-          ),
-        );
+    if (
+      !formData.reference.trim() ||
+      !formData.designation.trim() ||
+      !formData.designationAr.trim() ||
+      !formData.localisation.trim() ||
+      !formData.installationDate
+    ) {
+      setError(
+        tr(
+          "Tous les champs obligatoires doivent être remplis.",
+          "يجب ملء جميع الحقول الإلزامية.",
+        ),
+      );
+      return;
+    }
 
-        return;
-      }
+    if (!Number.isFinite(formData.power) || formData.power <= 0) {
+      setError(
+        tr(
+          "La puissance doit être supérieure à zéro.",
+          "يجب أن تكون القدرة أكبر من صفر.",
+        ),
+      );
+      return;
+    }
 
-      if (
-        formData.power <= 0
-      ) {
-        setError(
-          t(
-            "lighting.form.invalidPower",
-          ),
-        );
+    if (
+      !Number.isFinite(formData.latitude) ||
+      formData.latitude < -90 ||
+      formData.latitude > 90
+    ) {
+      setError(tr("Latitude invalide.", "خط العرض غير صالح."));
+      return;
+    }
 
-        return;
-      }
+    if (
+      !Number.isFinite(formData.longitude) ||
+      formData.longitude < -180 ||
+      formData.longitude > 180
+    ) {
+      setError(tr("Longitude invalide.", "خط الطول غير صالح."));
+      return;
+    }
 
-      if (
-        !Number.isFinite(
-          formData.latitude,
-        ) ||
-        formData.latitude < -90 ||
-        formData.latitude > 90
-      ) {
-        setError(
-          t(
-            "lighting.form.invalidLatitude",
-          ),
-        );
+    await onSubmit({
+      ...formData,
+      reference: formData.reference.trim().toUpperCase(),
+      designation: formData.designation.trim(),
+      designationAr: formData.designationAr.trim(),
+      localisation: formData.localisation.trim(),
+      status: isEdit ? formData.status : "ACTIVE",
+      documents: [...formData.documents],
+    });
+  };
 
-        return;
-      }
-
-      if (
-        !Number.isFinite(
-          formData.longitude,
-        ) ||
-        formData.longitude < -180 ||
-        formData.longitude > 180
-      ) {
-        setError(
-          t(
-            "lighting.form.invalidLongitude",
-          ),
-        );
-
-        return;
-      }
-
-      setError("");
-
-      await onSubmit({
-        ...formData,
-
-        reference:
-          formData.reference
-            .trim()
-            .toUpperCase(),
-
-        designation:
-          formData.designation.trim(),
-
-        designationAr:
-          formData.designationAr.trim(),
-
-        zone:
-          formData.zone.trim(),
-
-        zoneAr:
-          formData.zoneAr.trim(),
-
-        address:
-          formData.address.trim(),
-
-        addressAr:
-          formData.addressAr.trim(),
-
-        documents: [
-          ...formData.documents,
-        ],
-      });
-    };
-
-  const inputClassName =
-    "mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-orange-500 dark:focus:ring-orange-500/20";
-
-  const labelClassName =
+  const inputClass =
+    "mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:focus:ring-orange-500/20";
+  const labelClass =
     "text-sm font-medium text-slate-700 dark:text-slate-300";
 
   return (
-    <form
-      onSubmit={
-        handleSubmit
-      }
-      className="space-y-6"
-    >
+    <form onSubmit={submit} className="space-y-6">
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:bg-red-950/20 dark:text-red-300">
           {error}
         </div>
       )}
 
       <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            {t(
-              "lighting.form.generalInformation",
-            )}
-          </h2>
+        <h2 className="text-lg font-bold">
+          {tr("Informations générales", "المعلومات العامة")}
+        </h2>
 
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {t(
-              "lighting.form.generalDescription",
+        {!isEdit && (
+          <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:bg-green-950/20 dark:text-green-300">
+            {tr(
+              "Le nouveau point sera créé avec le statut Actif automatiquement.",
+              "سيتم إنشاء نقطة الإنارة بالحالة «نشط» تلقائياً.",
             )}
-          </p>
-        </div>
+          </div>
+        )}
 
         <div className="mt-5 grid gap-5 md:grid-cols-2">
-          <label className={labelClassName}>
-            {t(
-              "lighting.form.reference",
-            )}{" "}
-            *
-
+          <label className={labelClass}>
+            {tr("Référence", "المرجع")} *
             <input
-              type="text"
               name="reference"
               value={formData.reference}
               onChange={handleChange}
               placeholder="LMP-001"
-              className={inputClassName}
+              className={inputClass}
             />
           </label>
 
-          <label className={labelClassName}>
-            {t(
-              "lighting.form.status",
-            )}{" "}
-            *
-
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className={inputClassName}
-            >
-              {statuses.map(
-                (status) => (
-                  <option
-                    key={status}
-                    value={status}
-                  >
-                    {t(
-                      `lighting.statuses.${status}`,
-                    )}
+          {isEdit && (
+            <label className={labelClass}>
+              {tr("Statut", "الحالة")} *
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className={inputClass}
+              >
+                {statuses.map((status) => (
+                  <option key={status} value={status}>
+                    {t(`lighting.statuses.${status}`)}
                   </option>
-                ),
-              )}
-            </select>
-          </label>
+                ))}
+              </select>
+            </label>
+          )}
 
-          <label className={labelClassName}>
-            {t(
-              "lighting.form.designationFr",
-            )}{" "}
-            *
-
+          <label className={labelClass}>
+            {tr("Désignation en français", "التسمية بالفرنسية")} *
             <input
-              type="text"
               name="designation"
-              value={
-                formData.designation
-              }
+              value={formData.designation}
               onChange={handleChange}
-              className={inputClassName}
+              className={inputClass}
             />
           </label>
 
-          <label className={labelClassName}>
-            {t(
-              "lighting.form.designationAr",
-            )}{" "}
-            *
-
+          <label className={labelClass}>
+            {tr("Désignation en arabe", "التسمية بالعربية")} *
             <input
-              type="text"
               name="designationAr"
-              value={
-                formData.designationAr
-              }
+              value={formData.designationAr}
               onChange={handleChange}
               dir="rtl"
-              className={inputClassName}
+              className={inputClass}
             />
           </label>
 
-          <label className={labelClassName}>
-            {t(
-              "lighting.form.zoneFr",
-            )}{" "}
-            *
-
+          <label className={`${labelClass} md:col-span-2`}>
+            {tr("Localisation", "الموقع")} *
             <input
-              type="text"
-              name="zone"
-              value={formData.zone}
+              name="localisation"
+              value={formData.localisation}
               onChange={handleChange}
-              className={inputClassName}
+              placeholder={tr(
+                "Ex. Hay Mohammadi, Avenue...",
+                "مثال: حي المحمدي، شارع...",
+              )}
+              className={inputClass}
             />
           </label>
 
-          <label className={labelClassName}>
-            {t(
-              "lighting.form.zoneAr",
-            )}{" "}
-            *
-
-            <input
-              type="text"
-              name="zoneAr"
-              value={formData.zoneAr}
-              onChange={handleChange}
-              dir="rtl"
-              className={inputClassName}
-            />
-          </label>
-
-          <label className={labelClassName}>
-            {t(
-              "lighting.form.addressFr",
-            )}{" "}
-            *
-
-            <input
-              type="text"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              className={inputClassName}
-            />
-          </label>
-
-          <label className={labelClassName}>
-            {t(
-              "lighting.form.addressAr",
-            )}{" "}
-            *
-
-            <input
-              type="text"
-              name="addressAr"
-              value={formData.addressAr}
-              onChange={handleChange}
-              dir="rtl"
-              className={inputClassName}
-            />
-          </label>
-
-          <label className={labelClassName}>
-            {t(
-              "lighting.form.installationDate",
-            )}{" "}
-            *
-
+          <label className={labelClass}>
+            {tr("Date d’installation", "تاريخ التركيب")} *
             <input
               type="date"
               name="installationDate"
-              value={
-                formData.installationDate
-              }
+              value={formData.installationDate}
               onChange={handleChange}
-              className={inputClassName}
+              className={inputClass}
             />
           </label>
 
-          <label className={labelClassName}>
-            {t(
-              "lighting.form.power",
-            )}{" "}
-            *
-
-            <div className="relative">
-              <input
-                type="number"
-                min="1"
-                step="1"
-                name="power"
-                value={formData.power}
-                onChange={handleChange}
-                className={`${inputClassName} pe-12`}
-              />
-
-              <span className="pointer-events-none absolute inset-e-3 top-1/2 mt-0.5 -translate-y-1/2 text-sm text-slate-400">
-                W
-              </span>
-            </div>
-          </label>
-        </div>
-
-        <div className="my-7 border-t border-slate-200 dark:border-slate-700" />
-
-        <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            {t(
-              "lighting.form.locationTitle",
-            )}
-          </h2>
-
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {t(
-              "lighting.form.locationDescription",
-            )}
-          </p>
-        </div>
-
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
-          <label className={labelClassName}>
-            {t(
-              "lighting.form.latitude",
-            )}{" "}
-            *
-
+          <label className={labelClass}>
+            {tr("Puissance (W)", "القدرة (واط)")} *
             <input
               type="number"
+              min="0"
+              step="any"
+              name="power"
+              value={formData.power}
+              onChange={handleChange}
+              className={inputClass}
+            />
+          </label>
+        </div>
+      </article>
+
+      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6">
+        <h2 className="text-lg font-bold">
+          {tr("Coordonnées GPS", "الإحداثيات الجغرافية")}
+        </h2>
+        <p className="mt-1 text-sm text-slate-500">
+          {tr(
+            "Utilisées pour la carte et pour proposer les techniciens les plus proches.",
+            "تستعمل للخريطة واقتراح أقرب التقنيين.",
+          )}
+        </p>
+
+        <div className="mt-5 grid gap-5 md:grid-cols-2">
+          <label className={labelClass}>
+            Latitude *
+            <input
+              type="number"
+              step="any"
               name="latitude"
               value={formData.latitude}
               onChange={handleChange}
-              min="-90"
-              max="90"
-              step="any"
-              placeholder="30.4208"
-              className={inputClassName}
+              className={inputClass}
             />
-
-            <span className="mt-1 block text-xs font-normal text-slate-400">
-              -90 → 90
-            </span>
           </label>
 
-          <label className={labelClassName}>
-            {t(
-              "lighting.form.longitude",
-            )}{" "}
-            *
-
+          <label className={labelClass}>
+            Longitude *
             <input
               type="number"
+              step="any"
               name="longitude"
               value={formData.longitude}
               onChange={handleChange}
-              min="-180"
-              max="180"
-              step="any"
-              placeholder="-9.5981"
-              className={inputClassName}
+              className={inputClass}
             />
-
-            <span className="mt-1 block text-xs font-normal text-slate-400">
-              -180 → 180
-            </span>
           </label>
         </div>
       </article>
 
       <DocumentManager
-        documents={
-          formData.documents
-        }
-        onChange={(
-          documents,
-        ) =>
-          setFormData(
-            (previous) => ({
-              ...previous,
-              documents,
-            }),
-          )
+        documents={formData.documents}
+        onChange={(documents) =>
+          setFormData((previous) => ({ ...previous, documents }))
         }
       />
 
@@ -507,13 +298,9 @@ function LightForm({
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex min-w-40 items-center justify-center rounded-xl bg-orange-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl bg-orange-600 px-5 py-3 text-sm font-semibold text-white hover:bg-orange-700 disabled:opacity-60"
         >
-          {loading
-            ? t(
-                "lighting.form.saving",
-              )
-            : submitLabel}
+          {loading ? tr("Enregistrement...", "جارٍ الحفظ...") : submitLabel}
         </button>
       </div>
     </form>

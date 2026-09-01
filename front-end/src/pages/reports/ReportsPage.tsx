@@ -11,22 +11,15 @@ import {
   Warehouse,
   Zap,
 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
-import {
-  useMemo,
-  useState,
-} from "react";
-
-import {
-  useTranslation,
-} from "react-i18next";
-
-import {
-  reportService,
-} from "../../services/reportService";
-
+import PermissionGuard from "../../components/common/PermissionGuard";
+import { PERMISSIONS } from "../../constants/permissions";
+import { useAuth } from "../../hooks/useAuth";
+import { reportService } from "../../services/reportService";
 import type {
-  ReportMetric,
+  ReportLabel,
   ReportSection,
   ReportType,
 } from "../../types/report";
@@ -34,1020 +27,387 @@ import type {
 type ReportOption = {
   type: ReportType;
   icon: typeof Users;
+  title: ReportLabel;
+  description: ReportLabel;
 };
 
-const reportOptions: ReportOption[] = [
+const options: ReportOption[] = [
   {
     type: "USERS",
     icon: Users,
+    title: { fr: "Utilisateurs", ar: "المستخدمون" },
+    description: {
+      fr: "Comptes, identités, rôles et statuts.",
+      ar: "الحسابات والهويات والأدوار والحالات.",
+    },
   },
   {
     type: "ASSETS",
     icon: Package,
+    title: { fr: "Patrimoine", ar: "الممتلكات" },
+    description: {
+      fr: "État actuel, acquisitions, locations et archives.",
+      ar: "الحالة الحالية والاقتناءات والكراء والأرشيف.",
+    },
   },
   {
     type: "STOCK",
     icon: Warehouse,
+    title: { fr: "Stock", ar: "المخزون" },
+    description: {
+      fr: "Valorisation, mouvements, demandes et réapprovisionnement.",
+      ar: "التقييم والحركات والطلبات وإعادة التموين.",
+    },
   },
   {
     type: "LIGHTING",
     icon: Zap,
+    title: { fr: "Éclairage public", ar: "الإنارة العمومية" },
+    description: {
+      fr: "Points lumineux, pannes, interventions, coûts et rapports.",
+      ar: "نقاط الإنارة والأعطاب والتدخلات والتكاليف والتقارير.",
+    },
   },
 ];
 
+const toDateInput = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 function ReportsPage() {
-  const {
-    t,
-    i18n,
-  } = useTranslation();
+  const { i18n } = useTranslation();
+  const { user } = useAuth();
+  const isArabic = i18n.language.startsWith("ar");
+  const language = isArabic ? "ar" : "fr";
+  const tr = (value: ReportLabel) => (isArabic ? value.ar : value.fr);
+  const txt = (fr: string, ar: string) => (isArabic ? ar : fr);
 
-  const [
-    reportType,
-    setReportType,
-  ] =
-    useState<ReportType>(
-      "ASSETS",
-    );
+  const today = useMemo(() => new Date(), []);
+  const [reportType, setReportType] = useState<ReportType>("ASSETS");
+  const [startDate, setStartDate] = useState(
+    toDateInput(new Date(today.getFullYear(), 0, 1)),
+  );
+  const [endDate, setEndDate] = useState(toDateInput(today));
+  const [report, setReport] = useState<
+    Awaited<ReturnType<typeof reportService.generate>> | null
+  >(null);
+  const [loading, setLoading] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
 
-  const [
-    startDate,
-    setStartDate,
-  ] =
-    useState(
-      "2026-08-01",
-    );
+  const selected = options.find((option) => option.type === reportType) ?? options[1];
+  const SelectedIcon = selected.icon ?? BarChart3;
 
-  const [
-    endDate,
-    setEndDate,
-  ] =
-    useState(
-      "2026-08-31",
-    );
+  const filteredSections = useMemo<ReportSection[]>(() => {
+    if (!report) return [];
+    const q = search.trim().toLowerCase();
+    if (!q) return report.sections;
 
-  const [
-    report,
-    setReport,
-  ] =
-    useState<
-      Awaited<
-        ReturnType<
-          typeof reportService.generate
-        >
-      > | null
-    >(null);
+    return report.sections.map((section) => ({
+      ...section,
+      rows: section.rows.filter((entry) =>
+        Object.values(entry.values).some((value) =>
+          String(value).toLowerCase().includes(q),
+        ),
+      ),
+    }));
+  }, [report, search]);
 
-  const [
-    loading,
-    setLoading,
-  ] =
-    useState(false);
+  const filteredRows = useMemo(
+    () => filteredSections.reduce((sum, section) => sum + section.rows.length, 0),
+    [filteredSections],
+  );
 
-  const [
-    exportingPdf,
-    setExportingPdf,
-  ] =
-    useState(false);
-
-  const [
-    exportingExcel,
-    setExportingExcel,
-  ] =
-    useState(false);
-
-  const [
-    error,
-    setError,
-  ] =
-    useState("");
-
-  const [
-    search,
-    setSearch,
-  ] =
-    useState("");
-
-  const selectedOption =
-    reportOptions.find(
-      (option) =>
-        option.type ===
-        reportType,
-    );
-
-  const SelectedIcon =
-    selectedOption?.icon ??
-    BarChart3;
-
-  const language =
-    i18n.language.startsWith(
-      "ar",
-    )
-      ? "ar"
-      : "fr";
-
-  /* =====================================================
-     LABELS
-  ===================================================== */
-
-  const getMetricLabel = (
-    metric: ReportMetric,
-  ) => {
-    return t(
-      metric.labelKey,
-      {
-        defaultValue:
-          metric.labelKey,
-      },
-    );
-  };
-
-  const getSectionLabel = (
-    section: ReportSection,
-  ) => {
-    return t(
-      section.titleKey,
-      {
-        defaultValue:
-          section.titleKey,
-      },
-    );
-  };
-
-  const getColumnLabel = (
-    labelKey: string,
-  ) => {
-    return t(
-      labelKey,
-      {
-        defaultValue:
-          labelKey,
-      },
-    );
-  };
-
-  /* =====================================================
-     SEARCH
-  ===================================================== */
-
-  const filteredSections =
-    useMemo(() => {
-      if (!report) {
-        return [];
-      }
-
-      const normalizedSearch =
-        search
-          .trim()
-          .toLowerCase();
-
-      if (
-        !normalizedSearch
-      ) {
-        return report.sections;
-      }
-
-      return report.sections.map(
-        (section) => ({
-          ...section,
-
-          rows:
-            section.rows.filter(
-              (row) =>
-                Object.values(
-                  row.values,
-                ).some(
-                  (value) =>
-                    String(
-                      value,
-                    )
-                      .toLowerCase()
-                      .includes(
-                        normalizedSearch,
-                      ),
-                ),
-            ),
-        }),
-      );
-    }, [
-      report,
-      search,
-    ]);
-
-  const filteredRowsCount =
-    useMemo(() => {
-      return filteredSections.reduce(
-        (
-          total,
-          section,
-        ) =>
-          total +
-          section.rows.length,
-        0,
-      );
-    }, [
-      filteredSections,
-    ]);
-
-  /* =====================================================
-     ERRORS
-  ===================================================== */
-
-  const getErrorMessage = (
-    caughtError: unknown,
-  ) => {
-    if (
-      caughtError instanceof
-      Error
-    ) {
-      if (
-        caughtError.message ===
-        "REPORT_DATES_REQUIRED"
-      ) {
-        return t(
-          "reports.errors.datesRequired",
-        );
-      }
-
-      if (
-        caughtError.message ===
-        "REPORT_INVALID_PERIOD"
-      ) {
-        return t(
-          "reports.errors.invalidPeriod",
-        );
-      }
+  const generate = async () => {
+    if (!startDate || !endDate) {
+      setError(txt("Veuillez sélectionner les deux dates.", "يرجى اختيار تاريخ البداية والنهاية."));
+      return;
+    }
+    if (startDate > endDate) {
+      setError(txt("La date de début doit être antérieure ou égale à la date de fin.", "يجب أن يكون تاريخ البداية قبل أو يساوي تاريخ النهاية."));
+      return;
     }
 
-    return t(
-      "reports.errors.generate",
-    );
+    try {
+      setLoading(true);
+      setError("");
+      setSearch("");
+      const generatedBy = user
+        ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()
+        : undefined;
+      const data = await reportService.generate({
+        type: reportType,
+        startDate,
+        endDate,
+        generatedBy,
+        language,
+      });
+      setReport(data);
+    } catch {
+      setError(txt("Impossible de générer le rapport.", "تعذر إنشاء التقرير."));
+    } finally {
+      setLoading(false);
+    }
   };
 
-  /* =====================================================
-     GENERATE
-  ===================================================== */
+  const exportPdf = async () => {
+    if (!report) return;
+    try {
+      setExportingPdf(true);
+      setError("");
+      await reportService.exportPdf(report, language);
+    } catch {
+      setError(txt("Impossible d'exporter le PDF.", "تعذر تصدير ملف PDF."));
+    } finally {
+      setExportingPdf(false);
+    }
+  };
 
-  const handleGenerate =
-    async () => {
-      if (
-        !startDate ||
-        !endDate
-      ) {
-        setError(
-          t(
-            "reports.errors.datesRequired",
-          ),
-        );
-
-        return;
-      }
-
-      if (
-        startDate >
-        endDate
-      ) {
-        setError(
-          t(
-            "reports.errors.invalidPeriod",
-          ),
-        );
-
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError("");
-        setSearch("");
-
-        const data =
-          await reportService.generate(
-            {
-              type:
-                reportType,
-              startDate,
-              endDate,
-            },
-          );
-
-        setReport(
-          data,
-        );
-      } catch (
-        caughtError
-      ) {
-        setError(
-          getErrorMessage(
-            caughtError,
-          ),
-        );
-      } finally {
-        setLoading(
-          false,
-        );
-      }
-    };
-
-  /* =====================================================
-     PDF
-  ===================================================== */
-
-  const handlePdfExport =
-    async () => {
-      if (!report) {
-        return;
-      }
-
-      try {
-        setExportingPdf(
-          true,
-        );
-
-        await reportService.exportPdf(
-          report,
-          language,
-        );
-      } catch (
-        caughtError
-      ) {
-        console.error(
-          caughtError,
-        );
-
-        setError(
-          t(
-            "reports.errors.generate",
-          ),
-        );
-      } finally {
-        setExportingPdf(
-          false,
-        );
-      }
-    };
-
-  /* =====================================================
-     EXCEL
-  ===================================================== */
-
-  const handleExcelExport =
-    async () => {
-      if (!report) {
-        return;
-      }
-
-      try {
-        setExportingExcel(
-          true,
-        );
-
-        await reportService.exportExcel(
-          report,
-          language,
-        );
-      } catch (
-        caughtError
-      ) {
-        console.error(
-          caughtError,
-        );
-
-        setError(
-          t(
-            "reports.errors.generate",
-          ),
-        );
-      } finally {
-        setExportingExcel(
-          false,
-        );
-      }
-    };
+  const exportExcel = async () => {
+    if (!report) return;
+    try {
+      setExportingExcel(true);
+      setError("");
+      await reportService.exportExcel(report, language);
+    } catch {
+      setError(txt("Impossible d'exporter le fichier Excel.", "تعذر تصدير ملف Excel."));
+    } finally {
+      setExportingExcel(false);
+    }
+  };
 
   return (
     <section className="space-y-6">
-      {/* ================= HEADER ================= */}
-
       <div>
         <h1 className="flex items-center gap-3 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
           <BarChart3 className="text-orange-600 dark:text-orange-400" />
-
-          {t(
-            "reports.page.title",
-          )}
+          {txt("Rapports", "التقارير")}
         </h1>
-
-        <p className="mt-2 text-slate-600 dark:text-slate-400">
-          {t(
-            "reports.page.description",
+        <p className="mt-2 max-w-3xl text-slate-600 dark:text-slate-400">
+          {txt(
+            "Générez des rapports complets à partir des données réelles de chaque module, consultez-les puis exportez-les en PDF ou Excel.",
+            "أنشئ تقارير كاملة انطلاقاً من البيانات الفعلية لكل وحدة، ثم عاينها وصدّرها بصيغة PDF أو Excel.",
           )}
         </p>
       </div>
 
-      {/* ================= REPORT TYPES ================= */}
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {reportOptions.map(
-          (option) => {
-            const Icon =
-              option.icon;
-
-            const selected =
-              reportType ===
-              option.type;
-
-            return (
-              <button
-                key={
-                  option.type
-                }
-                type="button"
-                onClick={() => {
-                  setReportType(
-                    option.type,
-                  );
-
-                  setReport(
-                    null,
-                  );
-
-                  setSearch(
-                    "",
-                  );
-
-                  setError(
-                    "",
-                  );
-                }}
-                className={[
-                  "rounded-2xl border p-5 text-start shadow-sm transition",
-                  selected
-                    ? "border-orange-500 bg-orange-50 ring-2 ring-orange-100 dark:border-orange-500 dark:bg-orange-500/10 dark:ring-orange-500/10"
-                    : "border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50/50 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-orange-500/50 dark:hover:bg-orange-500/5",
-                ].join(
-                  " ",
-                )}
-              >
-                <div
-                  className={[
-                    "flex h-11 w-11 items-center justify-center rounded-xl",
-                    selected
-                      ? "bg-orange-600 text-white"
-                      : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
-                  ].join(
-                    " ",
-                  )}
-                >
-                  <Icon
-                    size={
-                      22
-                    }
-                  />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {options.map((option) => {
+          const Icon = option.icon;
+          const active = option.type === reportType;
+          return (
+            <button
+              key={option.type}
+              type="button"
+              onClick={() => {
+                setReportType(option.type);
+                setReport(null);
+                setSearch("");
+              }}
+              className={`rounded-2xl border p-4 text-start shadow-sm transition ${
+                active
+                  ? "border-orange-500 bg-orange-50 ring-2 ring-orange-100 dark:bg-orange-500/10 dark:ring-orange-500/15"
+                  : "border-slate-200 bg-white hover:border-orange-300 dark:border-slate-700 dark:bg-slate-800"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`rounded-xl p-2.5 ${active ? "bg-orange-600 text-white" : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200"}`}>
+                  <Icon size={21} />
                 </div>
-
-                <p className="mt-4 font-semibold text-slate-900 dark:text-white">
-                  {t(
-                    `reports.types.${option.type}.title`,
-                  )}
-                </p>
-
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  {t(
-                    `reports.types.${option.type}.description`,
-                  )}
-                </p>
-              </button>
-            );
-          },
-        )}
+                <div>
+                  <p className="font-bold text-slate-900 dark:text-white">{tr(option.title)}</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">{tr(option.description)}</p>
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
-      {/* ================= GENERATOR ================= */}
-
-      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6">
+      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400">
-            <SelectedIcon
-              size={
-                22
-              }
-            />
-          </div>
-
+          <SelectedIcon className="text-orange-600 dark:text-orange-400" />
           <div>
-            <h2 className="font-semibold text-slate-900 dark:text-white">
-              {t(
-                "reports.generator.title",
-              )}
+            <h2 className="font-bold text-slate-900 dark:text-white">
+              {txt("Générer le rapport", "إنشاء التقرير")} — {tr(selected.title)}
             </h2>
-
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              {t(
-                `reports.types.${reportType}.title`,
+              {txt(
+                "La période filtre les événements (mouvements, pannes, interventions, acquisitions...). Les sections « état actuel » restent une photographie complète du système.",
+                "تقوم الفترة بتصفية الأحداث مثل الحركات والأعطاب والتدخلات والاقتناءات، بينما تعرض أقسام الحالة الحالية صورة كاملة للنظام.",
               )}
             </p>
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {/* START DATE */}
-
-          <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              {t(
-                "reports.generator.startDate",
-              )}
-            </span>
-
-            <div className="relative">
-              <CalendarDays
-                size={
-                  18
-                }
-                className="pointer-events-none absolute inset-s-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-
-              <input
-                type="date"
-                value={
-                  startDate
-                }
-                onChange={(
-                  event,
-                ) => {
-                  setStartDate(
-                    event
-                      .target
-                      .value,
-                  );
-
-                  setReport(
-                    null,
-                  );
-
-                  setError(
-                    "",
-                  );
-                }}
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white ps-10 pe-3 text-sm text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:focus:ring-orange-500/20"
-              />
-            </div>
+        <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            <span className="mb-1 flex items-center gap-2"><CalendarDays size={16} />{txt("Date de début", "تاريخ البداية")}</span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
+              className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 dark:border-slate-600 dark:bg-slate-900"
+            />
           </label>
 
-          {/* END DATE */}
-
-          <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              {t(
-                "reports.generator.endDate",
-              )}
-            </span>
-
-            <div className="relative">
-              <CalendarDays
-                size={
-                  18
-                }
-                className="pointer-events-none absolute inset-s-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-
-              <input
-                type="date"
-                value={
-                  endDate
-                }
-                onChange={(
-                  event,
-                ) => {
-                  setEndDate(
-                    event
-                      .target
-                      .value,
-                  );
-
-                  setReport(
-                    null,
-                  );
-
-                  setError(
-                    "",
-                  );
-                }}
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white ps-10 pe-3 text-sm text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:focus:ring-orange-500/20"
-              />
-            </div>
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            <span className="mb-1 flex items-center gap-2"><CalendarDays size={16} />{txt("Date de fin", "تاريخ النهاية")}</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+              className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 dark:border-slate-600 dark:bg-slate-900"
+            />
           </label>
+
+          <button
+            type="button"
+            onClick={() => void generate()}
+            disabled={loading}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 font-semibold text-white transition hover:bg-orange-700 disabled:opacity-60"
+          >
+            {loading ? <Loader2 size={18} className="animate-spin" /> : <BarChart3 size={18} />}
+            {loading ? txt("Génération...", "جارٍ الإنشاء...") : txt("Générer", "إنشاء")}
+          </button>
         </div>
-
-        {error && (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
-            {error}
-          </div>
-        )}
-
-        <button
-          type="button"
-          disabled={
-            loading
-          }
-          onClick={() => {
-            void handleGenerate();
-          }}
-          className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? (
-            <Loader2
-              size={
-                18
-              }
-              className="animate-spin"
-            />
-          ) : (
-            <FileText
-              size={
-                18
-              }
-            />
-          )}
-
-          {loading
-            ? t(
-                "reports.generator.generating",
-              )
-            : t(
-                "reports.generator.generate",
-              )}
-        </button>
       </article>
 
-      {/* ================= REPORT ================= */}
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
+          {error}
+        </div>
+      )}
 
       {report && (
-        <>
-          {/* STATISTICS */}
-
-          <div
-            className={[
-              "grid gap-4",
-              report.statistics
-                .length >=
-              4
-                ? "sm:grid-cols-2 xl:grid-cols-4"
-                : "sm:grid-cols-2 xl:grid-cols-3",
-            ].join(
-              " ",
-            )}
-          >
-            {report.statistics.map(
-              (
-                metric,
-                index,
-              ) => (
-                <article
-                  key={
-                    metric.id
-                  }
-                  className={[
-                    "rounded-2xl border p-5 shadow-sm",
-                    index ===
-                    0
-                      ? "border-orange-200 bg-orange-50 dark:border-orange-900/40 dark:bg-orange-950/20"
-                      : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800",
-                  ].join(
-                    " ",
-                  )}
-                >
-                  <p
-                    className={[
-                      "text-sm",
-                      index ===
-                      0
-                        ? "text-orange-700 dark:text-orange-400"
-                        : "text-slate-500 dark:text-slate-400",
-                    ].join(
-                      " ",
-                    )}
-                  >
-                    {getMetricLabel(
-                      metric,
-                    )}
-                  </p>
-
-                  <div className="mt-2 flex items-baseline gap-2">
-                    <p
-                      className={[
-                        "text-3xl font-bold",
-                        index ===
-                        0
-                          ? "text-orange-700 dark:text-orange-300"
-                          : "text-slate-900 dark:text-white",
-                      ].join(
-                        " ",
-                      )}
-                    >
-                      {
-                        metric.value
-                      }
-                    </p>
-
-                    {metric.unit && (
-                      <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-                        {
-                          metric.unit
-                        }
-                      </span>
-                    )}
-                  </div>
-                </article>
-              ),
-            )}
-          </div>
-
-          {/* PREVIEW CONTAINER */}
-
-          <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            {/* PREVIEW HEADER */}
-
-            <div className="flex flex-col justify-between gap-4 border-b border-slate-200 p-5 dark:border-slate-700 lg:flex-row lg:items-center">
+        <div className="space-y-5">
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
-                <h2 className="font-semibold text-slate-900 dark:text-white">
-                  {t(
-                    "reports.preview.title",
-                  )}
-                </h2>
-
+                <p className="text-xs font-semibold uppercase tracking-wide text-orange-600 dark:text-orange-400">SGPBSE</p>
+                <h2 className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{tr(report.title)}</h2>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  {t(
-                    "reports.preview.period",
-                    {
-                      start:
-                        report.startDate,
-                      end:
-                        report.endDate,
-                    },
-                  )}
+                  {txt("Période", "الفترة")}: {report.startDate} → {report.endDate}
+                  {report.generatedBy ? ` · ${txt("Généré par", "أنشئ بواسطة")}: ${report.generatedBy}` : ""}
                 </p>
               </div>
 
-              {/* EXPORT */}
-
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  disabled={
-                    exportingPdf
-                  }
-                  onClick={() => {
-                    void handlePdfExport();
-                  }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
-                >
-                  {exportingPdf ? (
-                    <Loader2
-                      size={
-                        17
-                      }
-                      className="animate-spin"
-                    />
-                  ) : (
-                    <Download
-                      size={
-                        17
-                      }
-                    />
-                  )}
-
-                  {t(
-                    "reports.actions.pdf",
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  disabled={
-                    exportingExcel
-                  }
-                  onClick={() => {
-                    void handleExcelExport();
-                  }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-semibold text-green-700 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300 dark:hover:bg-green-500/20"
-                >
-                  {exportingExcel ? (
-                    <Loader2
-                      size={
-                        17
-                      }
-                      className="animate-spin"
-                    />
-                  ) : (
-                    <FileSpreadsheet
-                      size={
-                        17
-                      }
-                    />
-                  )}
-
-                  {t(
-                    "reports.actions.excel",
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* SEARCH */}
-
-            <div className="border-b border-slate-200 p-4 dark:border-slate-700">
-              <div className="relative max-w-xl">
-                <Search
-                  size={
-                    18
-                  }
-                  className="pointer-events-none absolute inset-s-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-
-                <input
-                  type="search"
-                  value={
-                    search
-                  }
-                  onChange={(
-                    event,
-                  ) =>
-                    setSearch(
-                      event
-                        .target
-                        .value,
-                    )
-                  }
-                  placeholder={t(
-                    "reports.preview.search",
-                  )}
-                  className="h-10 w-full rounded-xl border border-slate-300 bg-white ps-10 pe-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:focus:ring-orange-500/20"
-                />
-              </div>
-            </div>
-
-            {/* ================= SECTIONS ================= */}
-
-            <div className="space-y-8 p-5 sm:p-6">
-              {filteredSections.map(
-                (
-                  section,
-                  sectionIndex,
-                ) => (
-                  <section
-                    key={
-                      section.id
-                    }
+                <PermissionGuard permission={PERMISSIONS.EXPORT_PDF}>
+                  <button
+                    type="button"
+                    onClick={() => void exportPdf()}
+                    disabled={exportingPdf}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
                   >
-                    {/* SECTION TITLE */}
+                    {exportingPdf ? <Loader2 size={17} className="animate-spin" /> : <FileText size={17} />}
+                    {txt("Exporter PDF", "تصدير PDF")}
+                  </button>
+                </PermissionGuard>
 
-                    <div className="mb-4 flex items-center gap-3">
-                      <div className="h-6 w-1 rounded-full bg-orange-500" />
-
-                      <div>
-                        <h3 className="font-bold text-slate-900 dark:text-white">
-                          {getSectionLabel(
-                            section,
-                          )}
-                        </h3>
-
-                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                          {
-                            section
-                              .rows
-                              .length
-                          }{" "}
-                          {t(
-                            "reports.preview.results",
-                            {
-                              count:
-                                section
-                                  .rows
-                                  .length,
-                            },
-                          )}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* TABLE */}
-
-                    <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full">
-                          <thead className="bg-slate-900">
-                            <tr>
-                              {section.columns.map(
-                                (
-                                  column,
-                                ) => (
-                                  <th
-                                    key={
-                                      column.key
-                                    }
-                                    className="whitespace-nowrap px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-white"
-                                  >
-                                    {getColumnLabel(
-                                      column.labelKey,
-                                    )}
-                                  </th>
-                                ),
-                              )}
-                            </tr>
-                          </thead>
-
-                          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                            {section
-                              .rows
-                              .length ===
-                            0 ? (
-                              <tr>
-                                <td
-                                  colSpan={
-                                    section
-                                      .columns
-                                      .length
-                                  }
-                                  className="px-5 py-10 text-center text-sm text-slate-500 dark:text-slate-400"
-                                >
-                                  {t(
-                                    "reports.preview.empty",
-                                  )}
-                                </td>
-                              </tr>
-                            ) : (
-                              section.rows.map(
-                                (
-                                  row,
-                                ) => (
-                                  <tr
-                                    key={
-                                      `${sectionIndex}-${row.id}`
-                                    }
-                                    className="transition hover:bg-slate-50 dark:hover:bg-slate-700/40"
-                                  >
-                                    {section.columns.map(
-                                      (
-                                        column,
-                                      ) => {
-                                        const value =
-                                          row
-                                            .values[
-                                            column
-                                              .key
-                                          ];
-
-                                        return (
-                                          <td
-                                            key={
-                                              column.key
-                                            }
-                                            className="whitespace-nowrap px-4 py-3.5 text-sm text-slate-700 dark:text-slate-200"
-                                          >
-                                            {value ??
-                                              "-"}
-                                          </td>
-                                        );
-                                      },
-                                    )}
-                                  </tr>
-                                ),
-                              )
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </section>
-                ),
-              )}
-
-              {/* NO RESULTS AFTER SEARCH */}
-
-              {filteredRowsCount ===
-                0 && (
-                <div className="rounded-xl border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500 dark:border-slate-600 dark:text-slate-400">
-                  {t(
-                    "reports.preview.empty",
-                  )}
-                </div>
-              )}
+                <PermissionGuard permission={PERMISSIONS.EXPORT_EXCEL}>
+                  <button
+                    type="button"
+                    onClick={() => void exportExcel()}
+                    disabled={exportingExcel}
+                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    {exportingExcel ? <Loader2 size={17} className="animate-spin" /> : <FileSpreadsheet size={17} />}
+                    {txt("Exporter Excel", "تصدير Excel")}
+                  </button>
+                </PermissionGuard>
+              </div>
             </div>
 
-            {/* TOTAL */}
-
-            <div className="border-t border-slate-200 px-5 py-3 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-              {t(
-                "reports.preview.results",
-                {
-                  count:
-                    filteredRowsCount,
-                },
-              )}
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {report.statistics.map((item) => (
+                <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/60">
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{tr(item.label)}</p>
+                  <p className="mt-2 text-2xl font-black text-slate-900 dark:text-white">
+                    {item.value}{item.unit ? <span className="ms-1 text-sm font-semibold text-slate-500">{item.unit}</span> : null}
+                  </p>
+                </div>
+              ))}
             </div>
           </article>
-        </>
+
+          <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <label className="relative block w-full max-w-xl">
+                <Search className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder={txt("Rechercher dans toutes les sections du rapport", "البحث في جميع أقسام التقرير")}
+                  className="h-11 w-full rounded-xl border border-slate-300 bg-white ps-10 pe-3 text-sm outline-none focus:border-orange-500 dark:border-slate-600 dark:bg-slate-900"
+                />
+              </label>
+              <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                <Download size={16} />
+                {filteredRows} {txt("ligne(s) affichée(s)", "سطر معروض")}
+              </div>
+            </div>
+          </article>
+
+          {filteredSections.map((section) => (
+            <article key={section.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
+              <div className="border-b border-slate-200 p-5 dark:border-slate-700">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-bold text-slate-900 dark:text-white">{tr(section.title)}</h3>
+                    {section.description ? (
+                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{tr(section.description)}</p>
+                    ) : null}
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-200">
+                    {section.periodFiltered
+                      ? txt("Période sélectionnée", "الفترة المختارة")
+                      : txt("État actuel", "الحالة الحالية")}
+                    {` · ${section.rows.length}`}
+                  </span>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
+                  <thead className="bg-slate-50 dark:bg-slate-900/60">
+                    <tr>
+                      {section.columns.map((column) => (
+                        <th key={column.key} className="whitespace-nowrap px-4 py-3 text-start text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                          {tr(column.label)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700/70">
+                    {section.rows.length === 0 ? (
+                      <tr>
+                        <td colSpan={section.columns.length} className="px-4 py-10 text-center text-slate-500 dark:text-slate-400">
+                          {txt("Aucune donnée pour cette section.", "لا توجد بيانات في هذا القسم.")}
+                        </td>
+                      </tr>
+                    ) : (
+                      section.rows.map((entry) => (
+                        <tr key={String(entry.id)} className="align-top hover:bg-slate-50/70 dark:hover:bg-slate-700/30">
+                          {section.columns.map((column) => (
+                            <td key={column.key} className="max-w-[28rem] whitespace-normal px-4 py-3 text-slate-700 dark:text-slate-200">
+                              {String(entry.values[column.key] ?? "-")}
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          ))}
+        </div>
       )}
     </section>
   );

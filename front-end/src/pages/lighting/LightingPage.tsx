@@ -1,6 +1,6 @@
 import {
   Activity,
-  FileText,
+  CheckCircle2,
   History,
   Lightbulb,
   Plus,
@@ -8,1165 +8,482 @@ import {
   TriangleAlert,
   Wrench,
 } from "lucide-react";
-
 import {
   useEffect,
   useMemo,
   useState,
+  type ReactNode,
 } from "react";
-
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
-import {
-  useTranslation,
-} from "react-i18next";
-
-import LightTable from "../../components/lighting/LightTable";
 import FailureReportModal from "../../components/lighting/FailureReportModal";
-import InterventionModal from "../../components/lighting/InterventionModal";
+import InterventionModal, {
+  type InterventionData,
+} from "../../components/lighting/InterventionModal";
+import CompleteInterventionModal from "../../components/lighting/CompleteInterventionModal";
 import LightingMap from "../../components/lighting/LightingMap";
-
-import ConfirmDialog from "../../components/common/ConfirmDialog";
+import LightTable from "../../components/lighting/LightTable";
 import PermissionGuard from "../../components/common/PermissionGuard";
-import Toast from "../../components/common/Toast";
 
-import {
-  PERMISSIONS,
-} from "../../constants/permissions";
+import { PERMISSIONS } from "../../constants/permissions";
+import { ROUTES } from "../../constants/routes";
+import { lightingService } from "../../services/lightingService";
+import { useAuth } from "../../hooks/useAuth";
 
-import {
-  ROUTES,
-} from "../../constants/routes";
-
-import {
-  lightingService,
-} from "../../services/lightingService";
-
-import {
-  useAuth,
-} from "../../hooks/useAuth";
-
+import type { AppDocument } from "../../types/document";
 import type {
   Failure,
-  FailureStatus,
   Intervention,
+  InterventionCompletionData,
   Light,
   LightStatus,
+  Technician,
 } from "../../types/lighting";
 
-import type {
-  AppDocument,
-} from "../../types/document";
-
-type StatusFilter =
-  LightStatus | "";
-
-const failureStatusClassNames: Record<
-  FailureStatus,
-  string
-> = {
-  REPORTED:
-    "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300",
-
-  IN_PROGRESS:
-    "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
-
-  RESOLVED:
-    "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300",
-};
-
 function LightingPage() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const { i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith("ar");
+  const tr = (fr: string, ar: string) => (isArabic ? ar : fr);
 
-  const {
-    t,
-    i18n,
-  } = useTranslation();
+  const [lights, setLights] = useState<Light[]>([]);
+  const [failures, setFailures] = useState<Failure[]>([]);
+  const [interventions, setInterventions] = useState<Intervention[]>([]);
+  const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<LightStatus | "">("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
-  const isArabic =
-    i18n.language.startsWith("ar");
+  const [failureLight, setFailureLight] = useState<Light | null>(null);
+  const [interventionFailure, setInterventionFailure] =
+    useState<Failure | null>(null);
+  const [completionIntervention, setCompletionIntervention] =
+    useState<Intervention | null>(null);
 
-  const [
-    lights,
-    setLights,
-  ] = useState<Light[]>([]);
+  const [busy, setBusy] = useState(false);
 
-  const [
-    failures,
-    setFailures,
-  ] = useState<Failure[]>([]);
+  const load = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-  const [
-    interventions,
-    setInterventions,
-  ] = useState<Intervention[]>([]);
-
-  const [
-    search,
-    setSearch,
-  ] = useState("");
-
-  const [
-    statusFilter,
-    setStatusFilter,
-  ] = useState<StatusFilter>("");
-
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
-
-  const [
-    error,
-    setError,
-  ] = useState("");
-
-  const [
-    lightToDelete,
-    setLightToDelete,
-  ] = useState<Light | null>(null);
-
-  const [
-    deleting,
-    setDeleting,
-  ] = useState(false);
-
-  const [
-    selectedFailureLight,
-    setSelectedFailureLight,
-  ] = useState<Light | null>(null);
-
-  const [
-    failureModalOpen,
-    setFailureModalOpen,
-  ] = useState(false);
-
-  const [
-    failureLoading,
-    setFailureLoading,
-  ] = useState(false);
-
-  const [
-    interventionModalOpen,
-    setInterventionModalOpen,
-  ] = useState(false);
-
-  const [
-    selectedInterventionFailure,
-    setSelectedInterventionFailure,
-  ] = useState<Failure | null>(null);
-
-  const [
-    interventionLoading,
-    setInterventionLoading,
-  ] = useState(false);
-
-  const [
-    completingInterventionId,
-    setCompletingInterventionId,
-  ] = useState<number | null>(null);
-
-  const [
-    toast,
-    setToast,
-  ] = useState<{
-    open: boolean;
-    message: string;
-    type:
-      | "success"
-      | "error"
-      | "info";
-  }>({
-    open: false,
-    message: "",
-    type: "success",
-  });
-
-  const showToast = (
-    message: string,
-    type:
-      | "success"
-      | "error"
-      | "info" = "success",
-  ) => {
-    setToast({
-      open: true,
-      message,
-      type,
-    });
-  };
-
-  const loadData =
-    async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const [
-          lightsData,
-          failuresData,
-          interventionsData,
-        ] = await Promise.all([
+      const [lightData, failureData, interventionData, technicianData] =
+        await Promise.all([
           lightingService.getLights(),
           lightingService.getFailures(),
           lightingService.getInterventions(),
+          lightingService.getTechnicians(),
         ]);
 
-        setLights(lightsData);
-        setFailures(failuresData);
-        setInterventions(
-          interventionsData,
-        );
-      } catch {
-        setError(
-          t(
-            "lighting.page.loadError",
-          ),
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+      setLights(lightData);
+      setFailures(failureData);
+      setInterventions(interventionData);
+      setTechnicians(technicianData);
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : tr("Impossible de charger l’éclairage.", "تعذر تحميل الإنارة."),
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    void loadData();
+    void load();
   }, []);
 
-  const filteredLights =
-    useMemo(() => {
-      const normalizedSearch =
-        search
-          .trim()
-          .toLowerCase();
+  const filteredLights = useMemo(() => {
+    const query = search.trim().toLowerCase();
 
-      return lights.filter(
-        (light) => {
-          const matchesSearch =
-            !normalizedSearch ||
-            light.reference
-              .toLowerCase()
-              .includes(
-                normalizedSearch,
-              ) ||
-            light.designation
-              .toLowerCase()
-              .includes(
-                normalizedSearch,
-              ) ||
-            light.designationAr
-              .toLowerCase()
-              .includes(
-                normalizedSearch,
-              ) ||
-            light.zone
-              .toLowerCase()
-              .includes(
-                normalizedSearch,
-              ) ||
-            light.zoneAr
-              .toLowerCase()
-              .includes(
-                normalizedSearch,
-              ) ||
-            light.address
-              .toLowerCase()
-              .includes(
-                normalizedSearch,
-              ) ||
-            light.addressAr
-              .toLowerCase()
-              .includes(
-                normalizedSearch,
-              );
+    return lights.filter((light) => {
+      const matchSearch =
+        !query ||
+        light.reference.toLowerCase().includes(query) ||
+        light.designation.toLowerCase().includes(query) ||
+        light.designationAr.toLowerCase().includes(query) ||
+        light.localisation.toLowerCase().includes(query);
 
-          const matchesStatus =
-            !statusFilter ||
-            light.status ===
-              statusFilter;
+      return matchSearch && (!statusFilter || light.status === statusFilter);
+    });
+  }, [lights, search, statusFilter]);
 
-          return (
-            matchesSearch &&
-            matchesStatus
-          );
-        },
-      );
-    }, [
-      lights,
-      search,
-      statusFilter,
-    ]);
+  const openFailureLightIds = useMemo(
+    () =>
+      new Set(
+        failures
+          .filter((failure) => failure.status !== "RESOLVED")
+          .map((failure) => failure.lightId),
+      ),
+    [failures],
+  );
 
   const activeCount =
-    lights.filter(
-      (light) =>
-        light.status ===
-        "ACTIVE",
-    ).length;
-
+    lights.filter((item) => item.status === "ACTIVE").length;
   const damagedCount =
-    lights.filter(
-      (light) =>
-        light.status ===
-        "DAMAGED",
-    ).length;
-
+    lights.filter((item) => item.status === "DAMAGED").length;
   const maintenanceCount =
-    lights.filter(
-      (light) =>
-        light.status ===
-        "UNDER_MAINTENANCE",
-    ).length;
+    lights.filter((item) => item.status === "UNDER_MAINTENANCE").length;
+  const unresolvedCount =
+    failures.filter((item) => item.status !== "RESOLVED").length;
 
-  const unresolvedFailuresCount =
-    failures.filter(
-      (failure) =>
-        failure.status !==
-        "RESOLVED",
-    ).length;
+  const reportFailure = async (data: {
+    description: string;
+    documents?: AppDocument[];
+  }) => {
+    if (!failureLight) return;
 
-  const requestDelete = (
-    light: Light,
-  ) => {
-    setLightToDelete(light);
+    try {
+      setBusy(true);
+      await lightingService.createFailure({
+        lightId: failureLight.id,
+        description: data.description,
+        reportedBy:
+          user != null
+            ? `${user.firstName} ${user.lastName}`
+            : "PUBLIC",
+        documents: data.documents,
+      });
+      setFailureLight(null);
+      setNotice(tr("Panne déclarée avec succès.", "تم التبليغ عن العطل بنجاح."));
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : tr("Erreur.", "خطأ."));
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const handleDelete =
-    async () => {
-      if (!lightToDelete) {
-        return;
-      }
+  const planIntervention = async (data: InterventionData) => {
+    if (!interventionFailure) return;
 
-      try {
-        setDeleting(true);
-        setError("");
-
-        await lightingService.removeLight(
-          lightToDelete.id,
-        );
-
-        setLightToDelete(null);
-
-        showToast(
-          t(
-            "lighting.delete.success",
-          ),
-        );
-
-        await loadData();
-      } catch (caughtError) {
-        showToast(
-          caughtError instanceof Error
-            ? caughtError.message
-            : t(
-                "lighting.delete.error",
-              ),
-          "error",
-        );
-      } finally {
-        setDeleting(false);
-      }
-    };
-
-  const openFailureModal = (
-    light: Light,
-  ) => {
-    setSelectedFailureLight(light);
-    setFailureModalOpen(true);
+    try {
+      setBusy(true);
+      await lightingService.createIntervention({
+        failureId: interventionFailure.id,
+        technicianId: data.technicianId,
+        interventionDate: data.interventionDate,
+        description: data.description,
+        documents: data.documents,
+      });
+      setInterventionFailure(null);
+      setNotice(
+        tr(
+          "Intervention planifiée avec succès.",
+          "تمت برمجة التدخل بنجاح.",
+        ),
+      );
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : tr("Erreur.", "خطأ."));
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const handleReportFailure =
-    async (
-      data: {
-        description: string;
-        documents?: AppDocument[];
-      },
-    ) => {
-      if (
-        !selectedFailureLight
-      ) {
-        return;
-      }
+  const complete = async (data: InterventionCompletionData) => {
+    if (!completionIntervention) return;
 
-      try {
-        setFailureLoading(true);
-        setError("");
-
-        await lightingService.createFailure(
-          {
-            lightId:
-              selectedFailureLight.id,
-
-            description:
-              data.description,
-
-            reportedBy:
-              user
-                ? `${user.firstName} ${user.lastName}`
-                : t(
-                    "lighting.page.defaultUser",
-                  ),
-
-            documents:
-              data.documents,
-          },
-        );
-
-        setFailureModalOpen(false);
-        setSelectedFailureLight(null);
-
-        showToast(
-          t(
-            "lighting.failure.success",
-          ),
-        );
-
-        await loadData();
-      } catch (caughtError) {
-        showToast(
-          caughtError instanceof Error
-            ? caughtError.message
-            : t(
-                "lighting.failure.error",
-              ),
-          "error",
-        );
-      } finally {
-        setFailureLoading(false);
-      }
-    };
-
-  const openInterventionModal = (
-    failure: Failure,
-  ) => {
-    setSelectedInterventionFailure(
-      failure,
-    );
-
-    setInterventionModalOpen(true);
+    try {
+      setBusy(true);
+      await lightingService.completeIntervention(
+        completionIntervention.id,
+        data,
+      );
+      setCompletionIntervention(null);
+      setNotice(
+        tr(
+          "Intervention terminée. La panne est résolue et le point est actif.",
+          "تم إنهاء التدخل وحل العطل وأصبحت نقطة الإنارة نشطة.",
+        ),
+      );
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : tr("Erreur.", "خطأ."));
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const handleCreateIntervention =
-    async (data: {
-      technician: string;
-      interventionDate: string;
-      description: string;
-      documents?: AppDocument[];
-    }) => {
-      if (
-        !selectedInterventionFailure
-      ) {
-        return;
-      }
+  const deleteLight = async (light: Light) => {
+    if (
+      !window.confirm(
+        tr(
+          `Supprimer le point ${light.reference} ?`,
+          `حذف نقطة الإنارة ${light.reference}؟`,
+        ),
+      )
+    ) {
+      return;
+    }
 
-      try {
-        setInterventionLoading(true);
-        setError("");
-
-        await lightingService.createIntervention(
-          {
-            failureId:
-              selectedInterventionFailure.id,
-
-            technician:
-              data.technician,
-
-            interventionDate:
-              data.interventionDate,
-
-            description:
-              data.description,
-
-            documents:
-              data.documents,
-          },
-        );
-
-        setInterventionModalOpen(false);
-        setSelectedInterventionFailure(
-          null,
-        );
-
-        showToast(
-          t(
-            "lighting.interventions.createSuccess",
-          ),
-        );
-
-        await loadData();
-      } catch (caughtError) {
-        showToast(
-          caughtError instanceof Error
-            ? caughtError.message
-            : t(
-                "lighting.interventions.createError",
-              ),
-          "error",
-        );
-      } finally {
-        setInterventionLoading(false);
-      }
-    };
-
-  const handleCompleteIntervention =
-    async (
-      interventionId: number,
-    ) => {
-      try {
-        setCompletingInterventionId(
-          interventionId,
-        );
-
-        setError("");
-
-        await lightingService.completeIntervention(
-          interventionId,
-        );
-
-        showToast(
-          t(
-            "lighting.interventions.completeSuccess",
-          ),
-        );
-
-        await loadData();
-      } catch (caughtError) {
-        showToast(
-          caughtError instanceof Error
-            ? caughtError.message
-            : t(
-                "lighting.interventions.completeError",
-              ),
-          "error",
-        );
-      } finally {
-        setCompletingInterventionId(null);
-      }
-    };
+    try {
+      await lightingService.removeLight(light.id);
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : tr("Erreur.", "خطأ."));
+    }
+  };
 
   return (
     <section className="space-y-6">
-      <Toast
-        open={toast.open}
-        message={toast.message}
-        type={toast.type}
-        onClose={() =>
-          setToast(
-            (previous) => ({
-              ...previous,
-              open: false,
-            }),
-          )
-        }
-      />
-
-      <FailureReportModal
-        open={failureModalOpen}
-        light={selectedFailureLight}
-        loading={failureLoading}
-        onClose={() => {
-          if (!failureLoading) {
-            setFailureModalOpen(false);
-            setSelectedFailureLight(null);
-          }
-        }}
-        onSubmit={handleReportFailure}
-      />
-
-      <InterventionModal
-        open={interventionModalOpen}
-        failure={
-          selectedInterventionFailure
-        }
-        loading={interventionLoading}
-        onClose={() => {
-          if (!interventionLoading) {
-            setInterventionModalOpen(false);
-            setSelectedInterventionFailure(
-              null,
-            );
-          }
-        }}
-        onSubmit={
-          handleCreateIntervention
-        }
-      />
-
-      <ConfirmDialog
-        open={lightToDelete !== null}
-        title={t(
-          "lighting.delete.title",
-        )}
-        message={
-          lightToDelete
-            ? t(
-                "lighting.delete.message",
-                {
-                  name: isArabic
-                    ? lightToDelete.designationAr
-                    : lightToDelete.designation,
-                },
-              )
-            : ""
-        }
-        confirmLabel={t(
-          "lighting.actions.delete",
-        )}
-        loading={deleting}
-        onConfirm={() => {
-          void handleDelete();
-        }}
-        onCancel={() =>
-          setLightToDelete(null)
-        }
-      />
-
-      {/* HEADER */}
-
-      <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="flex items-center gap-3 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
-            <Lightbulb className="text-orange-600 dark:text-orange-400" />
-
-            {t(
-              "lighting.page.title",
-            )}
+          <h1 className="text-3xl font-bold">
+            {tr("Gestion de l’éclairage public", "تدبير الإنارة العمومية")}
           </h1>
-
-          <p className="mt-2 text-slate-600 dark:text-slate-400">
-            {t(
-              "lighting.page.description",
+          <p className="mt-2 text-slate-500">
+            {tr(
+              "Points lumineux, pannes, techniciens et interventions.",
+              "نقاط الإنارة والأعطاب والتقنيون والتدخلات.",
             )}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap gap-2">
           <Link
             to={ROUTES.LIGHTING_HISTORY}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-orange-500/40 dark:hover:bg-orange-500/10 dark:hover:text-orange-300"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 font-semibold"
           >
-            <History size={19} />
-
-            {t(
-              "lighting.page.history",
-            )}
+            <History size={17} />
+            {tr("Historique", "السجل")}
           </Link>
 
-          <PermissionGuard
-            permission={
-              PERMISSIONS.CREATE_LIGHT
-            }
-          >
+          <PermissionGuard permission={PERMISSIONS.CREATE_LIGHT}>
             <Link
               to={ROUTES.ADD_LIGHT}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-orange-700"
+              className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 font-semibold text-white"
             >
-              <Plus size={19} />
-
-              {t(
-                "lighting.page.add",
-              )}
+              <Plus size={17} />
+              {tr("Ajouter un point", "إضافة نقطة")}
             </Link>
           </PermissionGuard>
         </div>
       </div>
 
+      {notice && (
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          {notice}
+        </div>
+      )}
       {error && (
-        <div
-          role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400"
-        >
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      {/* STATISTICS */}
-
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                {t(
-                  "lighting.stats.active",
-                )}
-              </p>
-
-              <p className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">
-                {activeCount}
-              </p>
-            </div>
-
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400">
-              <Activity size={24} />
-            </div>
-          </div>
-        </article>
-
-        <article className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm dark:border-red-900/40 dark:bg-red-950/20">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-red-600 dark:text-red-400">
-                {t(
-                  "lighting.stats.damaged",
-                )}
-              </p>
-
-              <p className="mt-2 text-3xl font-bold text-red-700 dark:text-red-300">
-                {damagedCount}
-              </p>
-            </div>
-
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400">
-              <TriangleAlert
-                size={24}
-              />
-            </div>
-          </div>
-        </article>
-
-        <article className="rounded-2xl border border-orange-200 bg-orange-50 p-5 shadow-sm dark:border-orange-900/40 dark:bg-orange-950/20">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-orange-600 dark:text-orange-400">
-                {t(
-                  "lighting.stats.maintenance",
-                )}
-              </p>
-
-              <p className="mt-2 text-3xl font-bold text-orange-700 dark:text-orange-300">
-                {maintenanceCount}
-              </p>
-            </div>
-
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400">
-              <Wrench size={24} />
-            </div>
-          </div>
-        </article>
-
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                {t(
-                  "lighting.stats.unresolved",
-                )}
-              </p>
-
-              <p className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">
-                {
-                  unresolvedFailuresCount
-                }
-              </p>
-            </div>
-
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-              <TriangleAlert
-                size={24}
-              />
-            </div>
-          </div>
-        </article>
+        <StatCard
+          icon={<Activity size={20} />}
+          label={tr("Actifs", "نشطة")}
+          value={activeCount}
+        />
+        <StatCard
+          icon={<TriangleAlert size={20} />}
+          label={tr("Endommagés", "متضررة")}
+          value={damagedCount}
+        />
+        <StatCard
+          icon={<Wrench size={20} />}
+          label={tr("En maintenance", "قيد الصيانة")}
+          value={maintenanceCount}
+        />
+        <StatCard
+          icon={<Lightbulb size={20} />}
+          label={tr("Pannes ouvertes", "أعطاب مفتوحة")}
+          value={unresolvedCount}
+        />
       </div>
 
-      {/* FILTERS */}
-
-      <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800 md:grid-cols-[1fr_240px]">
+      <div className="grid gap-3 md:grid-cols-[1fr_220px]">
         <div className="relative">
           <Search
-            size={19}
-            className="pointer-events-none absolute inset-s-3 top-1/2 -translate-y-1/2 text-slate-400"
+            size={18}
+            className="absolute start-3 top-3.5 text-slate-400"
           />
-
           <input
-            type="search"
             value={search}
-            onChange={(event) =>
-              setSearch(
-                event.target.value,
-              )
-            }
-            placeholder={t(
-              "lighting.filters.search",
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={tr(
+              "Référence, désignation ou localisation",
+              "المرجع أو التسمية أو الموقع",
             )}
-            className="h-11 w-full rounded-xl border border-slate-300 bg-white ps-10 pe-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 dark:focus:ring-orange-500/20"
+            className="h-11 w-full rounded-xl border border-slate-300 bg-white ps-10 pe-3 dark:border-slate-600 dark:bg-slate-900"
           />
         </div>
 
         <select
           value={statusFilter}
           onChange={(event) =>
-            setStatusFilter(
-              event.target
-                .value as StatusFilter,
-            )
+            setStatusFilter(event.target.value as LightStatus | "")
           }
-          className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:focus:ring-orange-500/20"
+          className="h-11 rounded-xl border border-slate-300 bg-white px-3 dark:border-slate-600 dark:bg-slate-900"
         >
-          <option value="">
-            {t(
-              "lighting.filters.allStatuses",
-            )}
+          <option value="">{tr("Tous les statuts", "جميع الحالات")}</option>
+          <option value="ACTIVE">{tr("Actif", "نشط")}</option>
+          <option value="INACTIVE">{tr("Inactif", "غير نشط")}</option>
+          <option value="DAMAGED">{tr("Endommagé", "متضرر")}</option>
+          <option value="UNDER_MAINTENANCE">
+            {tr("En maintenance", "قيد الصيانة")}
           </option>
-
-          {(
-            [
-              "ACTIVE",
-              "INACTIVE",
-              "DAMAGED",
-              "UNDER_MAINTENANCE",
-            ] as LightStatus[]
-          ).map((status) => (
-            <option
-              key={status}
-              value={status}
-            >
-              {t(
-                `lighting.statuses.${status}`,
-              )}
-            </option>
-          ))}
         </select>
       </div>
-
-      <p className="text-sm text-slate-500 dark:text-slate-400">
-        {t(
-          "lighting.page.count",
-          {
-            count:
-              filteredLights.length,
-          },
-        )}
-      </p>
-
-      {/* TABLE */}
 
       <LightTable
         lights={filteredLights}
         loading={loading}
-        onDelete={requestDelete}
-        onReportFailure={
-          openFailureModal
+        canEdit={hasPermission(PERMISSIONS.UPDATE_LIGHT)}
+        canDelete={hasPermission(PERMISSIONS.DELETE_LIGHT)}
+        canReportFailure={hasPermission(PERMISSIONS.REPORT_FAILURE)}
+        openFailureLightIds={openFailureLightIds}
+        onDelete={deleteLight}
+        onReportFailure={setFailureLight}
+      />
+
+      <LightingMap lights={filteredLights} />
+
+      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <h2 className="text-lg font-bold">
+          {tr("Pannes et interventions", "الأعطاب والتدخلات")}
+        </h2>
+
+        <div className="mt-4 space-y-4">
+          {failures.length === 0 && (
+            <p className="text-sm text-slate-500">
+              {tr("Aucune panne.", "لا توجد أعطاب.")}
+            </p>
+          )}
+
+          {failures.map((failure) => {
+            const linked = interventions.filter(
+              (item) => item.failureId === failure.id,
+            );
+            const activeIntervention = linked.find((item) => !item.completed);
+
+            return (
+              <div
+                key={failure.id}
+                className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-bold">
+                      {failure.lightReference} ·{" "}
+                      {isArabic
+                        ? failure.lightDesignationAr
+                        : failure.lightDesignation}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      {failure.description}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold dark:bg-slate-700">
+                    {failure.status}
+                  </span>
+                </div>
+
+                {failure.status === "REPORTED" && (
+                  <PermissionGuard permission={PERMISSIONS.CREATE_INTERVENTION}>
+                    <button
+                      type="button"
+                      onClick={() => setInterventionFailure(failure)}
+                      className="mt-3 rounded-xl bg-orange-600 px-4 py-2 text-sm font-semibold text-white"
+                    >
+                      {tr("Planifier une intervention", "برمجة تدخل")}
+                    </button>
+                  </PermissionGuard>
+                )}
+
+                {activeIntervention && (
+                  <div className="mt-4 rounded-xl bg-orange-50 p-4 dark:bg-orange-950/20">
+                    <p className="font-semibold">
+                      {tr("Intervention planifiée", "تدخل مبرمج")}
+                    </p>
+                    <p className="mt-1 text-sm">
+                      {isArabic
+                        ? activeIntervention.technicianNameAr
+                        : activeIntervention.technicianName}
+                      {" · "}
+                      {activeIntervention.interventionDate}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {activeIntervention.technicianLocalisation}
+                    </p>
+
+                    <PermissionGuard permission={PERMISSIONS.UPDATE_INTERVENTION}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCompletionIntervention(activeIntervention)
+                        }
+                        className="mt-3 inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white"
+                      >
+                        <CheckCircle2 size={16} />
+                        {tr("Terminer l’intervention", "إنهاء التدخل")}
+                      </button>
+                    </PermissionGuard>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </article>
+
+      <FailureReportModal
+        open={failureLight != null}
+        light={failureLight}
+        loading={busy}
+        onClose={() => setFailureLight(null)}
+        onSubmit={reportFailure}
+      />
+
+      <InterventionModal
+        open={interventionFailure != null}
+        failure={interventionFailure}
+        light={
+          interventionFailure
+            ? lights.find(
+                (light) => light.id === interventionFailure.lightId,
+              ) ?? null
+            : null
         }
+        technicians={technicians}
+        loading={busy}
+        onClose={() => setInterventionFailure(null)}
+        onSubmit={planIntervention}
       />
 
-      {/* MAP */}
-
-      <LightingMap
-        lights={filteredLights}
+      <CompleteInterventionModal
+        open={completionIntervention != null}
+        intervention={completionIntervention}
+        loading={busy}
+        onClose={() => setCompletionIntervention(null)}
+        onSubmit={complete}
       />
-
-      {/* FAILURES + INTERVENTIONS */}
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        {/* FAILURES */}
-
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              {t(
-                "lighting.failures.title",
-              )}
-            </h2>
-
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              {t(
-                "lighting.failures.count",
-                {
-                  count:
-                    failures.length,
-                },
-              )}
-            </span>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {failures.length ===
-            0 ? (
-              <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500 dark:bg-slate-900 dark:text-slate-400">
-                {t(
-                  "lighting.failures.empty",
-                )}
-              </p>
-            ) : (
-              failures.map(
-                (failure) => (
-                  <div
-                    key={failure.id}
-                    className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"
-                  >
-                    <div className="flex flex-col justify-between gap-4 sm:flex-row">
-                      <div>
-                        <p
-                          className="font-semibold text-slate-800 dark:text-slate-100"
-                          dir="ltr"
-                        >
-                          {
-                            failure.lightReference
-                          }
-                        </p>
-
-                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                          {
-                            failure.description
-                          }
-                        </p>
-
-                        {failure.documents.length >
-                          0 && (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {failure.documents.map(
-                              (
-                                document,
-                              ) => (
-                                <span
-                                  key={
-                                    document.id
-                                  }
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-600 dark:border-slate-600 dark:text-slate-300"
-                                >
-                                  <FileText
-                                    size={
-                                      14
-                                    }
-                                  />
-
-                                  {
-                                    document.fileName
-                                  }
-                                </span>
-                              ),
-                            )}
-                          </div>
-                        )}
-
-                        <p className="mt-2 text-xs text-slate-400">
-                          {t(
-                            "lighting.failures.reportedInfo",
-                            {
-                              date:
-                                failure.reportedAt,
-                              user:
-                                failure.reportedBy ===
-                                "PUBLIC"
-                                  ? t(
-                                      "lighting.publicFailure.reporter",
-                                    )
-                                  : failure.reportedBy,
-                            },
-                          )}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col items-start gap-2 sm:items-end rtl:sm:items-start">
-                        <span
-                          className={[
-                            "rounded-full px-3 py-1 text-xs font-semibold",
-                            failureStatusClassNames[
-                              failure.status
-                            ],
-                          ].join(" ")}
-                        >
-                          {t(
-                            `lighting.failureStatuses.${failure.status}`,
-                          )}
-                        </span>
-
-                        {failure.status ===
-                          "REPORTED" && (
-                          <PermissionGuard
-                            permission={
-                              PERMISSIONS.CREATE_INTERVENTION
-                            }
-                          >
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openInterventionModal(
-                                  failure,
-                                )
-                              }
-                              className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-700 transition hover:bg-orange-100 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300 dark:hover:bg-orange-500/20"
-                            >
-                              {t(
-                                "lighting.failures.startTreatment",
-                              )}
-                            </button>
-                          </PermissionGuard>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ),
-              )
-            )}
-          </div>
-        </article>
-
-        {/* INTERVENTIONS */}
-
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              {t(
-                "lighting.interventions.title",
-              )}
-            </h2>
-
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              {t(
-                "lighting.interventions.count",
-                {
-                  count:
-                    interventions.length,
-                },
-              )}
-            </span>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {interventions.length ===
-            0 ? (
-              <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500 dark:bg-slate-900 dark:text-slate-400">
-                {t(
-                  "lighting.interventions.empty",
-                )}
-              </p>
-            ) : (
-              interventions.map(
-                (
-                  intervention,
-                ) => (
-                  <div
-                    key={
-                      intervention.id
-                    }
-                    className="rounded-xl bg-slate-50 p-4 dark:bg-slate-900"
-                  >
-                    <div className="flex items-start gap-3">
-                      <Wrench className="mt-0.5 shrink-0 text-orange-600 dark:text-orange-400" />
-
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-slate-800 dark:text-slate-100">
-                          {t(
-                            "lighting.interventions.number",
-                            {
-                              id:
-                                intervention.id,
-                            },
-                          )}
-                        </p>
-
-                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                          {
-                            intervention.description
-                          }
-                        </p>
-
-                        {intervention.documents.length >
-                          0 && (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {intervention.documents.map(
-                              (
-                                document,
-                              ) => (
-                                <span
-                                  key={
-                                    document.id
-                                  }
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                                >
-                                  <FileText
-                                    size={
-                                      14
-                                    }
-                                  />
-
-                                  {
-                                    document.fileName
-                                  }
-                                </span>
-                              ),
-                            )}
-                          </div>
-                        )}
-
-                        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                          {t(
-                            "lighting.interventions.technician",
-                          )}
-                          {" : "}
-                          {
-                            intervention.technician
-                          }
-                        </p>
-
-                        <p className="mt-1 text-xs text-slate-400">
-                          {t(
-                            "lighting.interventions.date",
-                          )}
-                          {" : "}
-                          {
-                            intervention.interventionDate
-                          }
-                        </p>
-
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <span
-                            className={
-                              intervention.completed
-                                ? "inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700 dark:bg-green-500/15 dark:text-green-300"
-                                : "inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700 dark:bg-orange-500/15 dark:text-orange-300"
-                            }
-                          >
-                            {intervention.completed
-                              ? t(
-                                  "lighting.interventions.completed",
-                                )
-                              : t(
-                                  "lighting.interventions.planned",
-                                )}
-                          </span>
-
-                          {!intervention.completed && (
-                            <PermissionGuard
-                              permission={
-                                PERMISSIONS.UPDATE_INTERVENTION
-                              }
-                            >
-                              <button
-                                type="button"
-                                disabled={
-                                  completingInterventionId ===
-                                  intervention.id
-                                }
-                                onClick={() => {
-                                  void handleCompleteIntervention(
-                                    intervention.id,
-                                  );
-                                }}
-                                className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300 dark:hover:bg-green-500/20"
-                              >
-                                {completingInterventionId ===
-                                intervention.id
-                                  ? "..."
-                                  : t(
-                                      "lighting.interventions.complete",
-                                    )}
-                              </button>
-                            </PermissionGuard>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ),
-              )
-            )}
-          </div>
-        </article>
-      </div>
     </section>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: number;
+}) {
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+      <div className="text-orange-600">{icon}</div>
+      <p className="mt-3 text-2xl font-bold">{value}</p>
+      <p className="text-sm text-slate-500">{label}</p>
+    </article>
   );
 }
 

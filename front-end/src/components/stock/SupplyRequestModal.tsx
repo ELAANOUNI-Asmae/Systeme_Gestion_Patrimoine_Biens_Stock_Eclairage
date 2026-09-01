@@ -1,17 +1,15 @@
+
 import {
+  BellRing,
   Boxes,
   ClipboardPlus,
 } from "lucide-react";
-
 import {
   useEffect,
   useState,
   type FormEvent,
 } from "react";
-
-import {
-  useTranslation,
-} from "react-i18next";
+import { useTranslation } from "react-i18next";
 
 import Modal from "../common/Modal";
 import DocumentManager from "../documents/DocumentManager";
@@ -19,28 +17,39 @@ import DocumentManager from "../documents/DocumentManager";
 import type {
   StockArticle,
 } from "../../types/stock";
+import type { AppDocument } from "../../types/document";
 
-import type {
-  AppDocument,
-} from "../../types/document";
-
-type SupplyRequestData = {
-  articleDesignation: string;
-  articleDesignationAr?: string;
+export type SupplyRequestData = {
+  articleId: number;
   requestedQuantity: number;
+  requesterId: number;
   requester: string;
   reason: string;
   documents?: AppDocument[];
 };
 
+export type RestockAlertData = {
+  articleId: number;
+  requestedQuantity: number;
+  requesterId: number;
+  requester: string;
+  reason: string;
+};
+
 type SupplyRequestModalProps = {
   open: boolean;
   articles: StockArticle[];
-  requester: string;
+  requester: {
+    id: number;
+    name: string;
+  };
   loading?: boolean;
   onClose: () => void;
   onSubmit: (
     data: SupplyRequestData,
+  ) => Promise<void> | void;
+  onRestockAlert: (
+    data: RestockAlertData,
   ) => Promise<void> | void;
 };
 
@@ -51,33 +60,21 @@ function SupplyRequestModal({
   loading = false,
   onClose,
   onSubmit,
+  onRestockAlert,
 }: SupplyRequestModalProps) {
-  const {
-    t,
-    i18n,
-  } = useTranslation();
+  const { i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith("ar");
+  const tr = (fr: string, ar: string) => (isArabic ? ar : fr);
 
-  const isArabic =
-    i18n.language.startsWith(
-      "ar",
-    );
-
-  const [articleId, setArticleId] =
-    useState("");
+  const [articleId, setArticleId] = useState("");
   const [
     requestedQuantity,
     setRequestedQuantity,
   ] = useState(0);
-  const [
-    requesterValue,
-    setRequesterValue,
-  ] = useState(requester);
-  const [reason, setReason] =
-    useState("");
+  const [reason, setReason] = useState("");
   const [documents, setDocuments] =
     useState<AppDocument[]>([]);
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!open) {
@@ -86,36 +83,58 @@ function SupplyRequestModal({
 
     setArticleId("");
     setRequestedQuantity(0);
-    setRequesterValue(requester);
     setReason("");
     setDocuments([]);
     setError("");
-  }, [open, requester]);
+  }, [open]);
 
   const selectedArticle =
     articles.find(
       (article) =>
-        article.id ===
-        Number(articleId),
+        article.id === Number(articleId),
+    );
+
+  const insufficient =
+    Boolean(
+      selectedArticle &&
+        requestedQuantity > selectedArticle.quantity,
     );
 
   const inputClassName =
-    "mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-orange-500/20";
+    "mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-orange-500 dark:border-slate-600 dark:bg-slate-900";
+
+  const validateBase = () => {
+    if (
+      !selectedArticle ||
+      requestedQuantity <= 0 ||
+      !reason.trim()
+    ) {
+      setError(
+        tr(
+          "L’article, la quantité et le motif sont obligatoires.",
+          "المادة والكمية والسبب إجبارية.",
+        ),
+      );
+      return false;
+    }
+
+    return true;
+  };
 
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault();
 
-    if (
-      !selectedArticle ||
-      requestedQuantity <= 0 ||
-      !requesterValue.trim() ||
-      !reason.trim()
-    ) {
+    if (!validateBase() || !selectedArticle) {
+      return;
+    }
+
+    if (requestedQuantity > selectedArticle.quantity) {
       setError(
-        t(
-          "stock.request.formRequired",
+        tr(
+          `Stock insuffisant. Il reste ${selectedArticle.quantity} ${selectedArticle.unit}. Choisissez la quantité disponible ou notifiez le responsable du réapprovisionnement.`,
+          `المخزون غير كافٍ. المتوفر هو ${selectedArticle.quantity} ${selectedArticle.unit}. اطلب الكمية المتوفرة أو أرسل تنبيهاً لمسؤول إعادة التزويد.`,
         ),
       );
       return;
@@ -124,17 +143,38 @@ function SupplyRequestModal({
     setError("");
 
     await onSubmit({
-      articleDesignation:
-        selectedArticle.designation,
-      articleDesignationAr:
-        selectedArticle.designationAr,
+      articleId: selectedArticle.id,
       requestedQuantity,
-      requester:
-        requesterValue.trim(),
+      requesterId: requester.id,
+      requester: requester.name,
       reason: reason.trim(),
-      documents: [
-        ...documents,
-      ],
+      documents: [...documents],
+    });
+  };
+
+  const notifyRestock = async () => {
+    if (!validateBase() || !selectedArticle) {
+      return;
+    }
+
+    if (requestedQuantity <= selectedArticle.quantity) {
+      setError(
+        tr(
+          "La quantité est déjà disponible. Envoyez une demande normale.",
+          "الكمية متوفرة حالياً. أرسل طلباً عادياً.",
+        ),
+      );
+      return;
+    }
+
+    setError("");
+
+    await onRestockAlert({
+      articleId: selectedArticle.id,
+      requestedQuantity,
+      requesterId: requester.id,
+      requester: requester.name,
+      reason: reason.trim(),
     });
   };
 
@@ -142,8 +182,9 @@ function SupplyRequestModal({
     <Modal
       open={open}
       maxWidth="max-w-3xl"
-      title={t(
-        "stock.request.modalTitle",
+      title={tr(
+        "Créer une demande de fourniture",
+        "إنشاء طلب تموين",
       )}
       onClose={() => {
         if (!loading) {
@@ -156,176 +197,154 @@ function SupplyRequestModal({
         className="space-y-5"
       >
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-300">
             {error}
           </div>
         )}
 
-        <div className="flex items-start gap-3 rounded-xl bg-orange-50 p-4 dark:bg-orange-500/10">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300">
-            <ClipboardPlus size={21} />
-          </div>
-
-          <div>
-            <p className="font-semibold text-slate-800 dark:text-slate-100">
-              {t(
-                "stock.request.modalDescription",
-              )}
-            </p>
-
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              {t(
-                "stock.request.modalHint",
-              )}
-            </p>
-          </div>
+        <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-900">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {tr("Demandeur", "مقدم الطلب")}
+          </p>
+          <p className="mt-1 font-bold">{requester.name}</p>
+          <p className="mt-1 text-xs text-slate-500">
+            {tr(
+              "Le demandeur est récupéré automatiquement depuis le compte connecté.",
+              "يتم جلب مقدم الطلب تلقائياً من الحساب المتصل.",
+            )}
+          </p>
         </div>
 
-        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-          {t(
-            "stock.request.article",
-          )}{" "}
-          *
+        <label className="block text-sm font-medium">
+          {tr("Article", "المادة")} *
           <select
             value={articleId}
             onChange={(event) => {
-              setArticleId(
-                event.target.value,
-              );
+              setArticleId(event.target.value);
               setRequestedQuantity(0);
               setError("");
             }}
             className={inputClassName}
           >
             <option value="">
-              {t(
-                "stock.request.chooseArticle",
-              )}
+              {tr("Choisir un article", "اختر مادة")}
             </option>
 
-            {articles.map(
-              (article) => (
-                <option
-                  key={article.id}
-                  value={article.id}
-                >
-                  {isArabic
-                    ? article.designationAr
-                    : article.designation}{" "}
-                  — {article.reference}
-                </option>
-              ),
-            )}
+            {articles.map((article) => (
+              <option
+                key={article.id}
+                value={article.id}
+              >
+                {isArabic
+                  ? article.designationAr
+                  : article.designation}{" "}
+                — {article.brand} — {article.barcode}
+              </option>
+            ))}
           </select>
         </label>
 
         {selectedArticle && (
           <div className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-700">
               <Boxes size={20} />
             </div>
 
-            <div className="min-w-0">
-              <p className="font-semibold text-slate-800 dark:text-slate-100">
+            <div>
+              <p className="font-semibold">
                 {isArabic
                   ? selectedArticle.designationAr
                   : selectedArticle.designation}
               </p>
-
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {t(
-                  "stock.request.availableQuantity",
-                )}
-                {" : "}
-                {selectedArticle.quantity}{" "}
-                {t(
-                  `stock.units.${selectedArticle.unit}`,
-                )}
+              <p className="text-xs text-slate-500">
+                {tr("Disponible", "المتوفر")}:{" "}
+                {selectedArticle.quantity} {selectedArticle.unit}
               </p>
-
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {isArabic
-                  ? selectedArticle.locationAr
-                  : selectedArticle.location}
+              <p className="text-xs text-slate-500">
+                {tr("Code-barres", "الباركود")}:{" "}
+                {selectedArticle.barcode}
               </p>
-
-              {selectedArticle.serialNumber && (
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  {t(
-                    "stock.form.serialNumber",
-                  )}{" "}
-                  : {selectedArticle.serialNumber}
-                </p>
-              )}
-
-              {selectedArticle.barcode && (
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  {t(
-                    "stock.form.barcode",
-                  )}{" "}
-                  : {selectedArticle.barcode}
-                </p>
-              )}
             </div>
           </div>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            {t(
-              "stock.request.quantity",
-            )}{" "}
-            *
-            <input
-              type="number"
-              min="1"
-              value={requestedQuantity}
-              onChange={(event) =>
-                setRequestedQuantity(
-                  Number(
-                    event.target.value,
-                  ),
-                )
-              }
-              className={inputClassName}
-            />
-          </label>
+        <label className="block text-sm font-medium">
+          {tr("Quantité demandée", "الكمية المطلوبة")} *
+          <input
+            type="number"
+            min="1"
+            value={requestedQuantity}
+            onChange={(event) => {
+              setRequestedQuantity(
+                Number(event.target.value),
+              );
+              setError("");
+            }}
+            className={inputClassName}
+          />
+        </label>
 
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            {t(
-              "stock.request.requester",
-            )}{" "}
-            *
-            <input
-              type="text"
-              value={requesterValue}
-              onChange={(event) =>
-                setRequesterValue(
-                  event.target.value,
-                )
-              }
-              className={inputClassName}
-            />
-          </label>
-        </div>
+        {insufficient && selectedArticle && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/20">
+            <p className="font-semibold text-amber-800 dark:text-amber-300">
+              {tr(
+                "Stock insuffisant",
+                "المخزون غير كافٍ",
+              )}
+            </p>
 
-        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-          {t(
-            "stock.request.reason",
-          )}{" "}
-          *
+            <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
+              {tr(
+                `Quantité disponible : ${selectedArticle.quantity}. La demande ne sera pas créée avec une quantité supérieure au stock.`,
+                `الكمية المتوفرة: ${selectedArticle.quantity}. لن يتم إنشاء الطلب بكمية أكبر من المخزون.`,
+              )}
+            </p>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {selectedArticle.quantity > 0 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setRequestedQuantity(
+                      selectedArticle.quantity,
+                    )
+                  }
+                  className="rounded-xl bg-amber-700 px-3 py-2 text-xs font-semibold text-white"
+                >
+                  {tr(
+                    `Demander ${selectedArticle.quantity}`,
+                    `طلب ${selectedArticle.quantity}`,
+                  )}
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  void notifyRestock();
+                }}
+                disabled={loading}
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-300 px-3 py-2 text-xs font-semibold text-amber-800 dark:border-amber-700 dark:text-amber-300"
+              >
+                <BellRing size={16} />
+                {tr(
+                  "Notifier le responsable du réapprovisionnement",
+                  "إشعار مسؤول إعادة التزويد",
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        <label className="block text-sm font-medium">
+          {tr("Motif", "السبب")} *
           <textarea
             value={reason}
             onChange={(event) =>
-              setReason(
-                event.target.value,
-              )
+              setReason(event.target.value)
             }
             rows={4}
-            placeholder={t(
-              "stock.request.reasonPlaceholder",
-            )}
-            className="mt-1 w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-orange-500/20"
+            className="mt-1 w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-orange-500 dark:border-slate-600 dark:bg-slate-900"
           />
         </label>
 
@@ -334,32 +353,23 @@ function SupplyRequestModal({
           onChange={setDocuments}
         />
 
-        <div className="sticky -bottom-5 z-10 -mx-5 mt-6 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white px-5 py-4 dark:border-slate-700 dark:bg-slate-800 sm:-mx-6 sm:flex-row sm:justify-end sm:px-6 rtl:sm:justify-start">
+        <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end dark:border-slate-700">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold dark:border-slate-600"
           >
-            {t(
-              "stock.common.cancel",
-            )}
+            {tr("Annuler", "إلغاء")}
           </button>
 
           <button
             type="submit"
-            disabled={loading}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:opacity-50"
+            disabled={loading || insufficient}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
           >
             <ClipboardPlus size={18} />
-
-            {loading
-              ? t(
-                  "stock.request.saving",
-                )
-              : t(
-                  "stock.request.submit",
-                )}
+            {tr("Envoyer la demande", "إرسال الطلب")}
           </button>
         </div>
       </form>

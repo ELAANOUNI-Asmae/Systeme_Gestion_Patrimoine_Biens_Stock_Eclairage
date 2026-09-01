@@ -23,12 +23,26 @@ import {
   YAxis,
 } from "recharts";
 
-import { useTranslation } from "react-i18next";
+import {
+  useEffect,
+  useState,
+} from "react";
 
-import { useAuth } from "../../hooks/useAuth";
-import { PERMISSIONS } from "../../constants/permissions";
+import {
+  useTranslation,
+} from "react-i18next";
 
-import { initialMockBiens } from "../../mock/biens";
+import {
+  useAuth,
+} from "../../hooks/useAuth";
+
+import {
+  PERMISSIONS,
+} from "../../constants/permissions";
+
+import {
+  initialMockBiens,
+} from "../../mock/biens";
 
 import {
   initialMockArticles,
@@ -40,13 +54,69 @@ import {
   initialMockLights,
 } from "../../mock/lighting";
 
+import {
+  userService,
+} from "../../services/userService";
+
 function DashboardPage() {
   const {
     user,
     hasPermission,
   } = useAuth();
 
-  const { t } = useTranslation();
+  const {
+    t,
+    i18n,
+  } =
+    useTranslation();
+
+  const isArabic =
+    i18n.language.startsWith(
+      "ar",
+    );
+
+  const [
+    usersCount,
+    setUsersCount,
+  ] =
+    useState(0);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadUsersCount =
+      async () => {
+        try {
+          const users =
+            await userService.getAll();
+
+          if (active) {
+            setUsersCount(
+              users.length,
+            );
+          }
+        } catch {
+          if (active) {
+            setUsersCount(
+              0,
+            );
+          }
+        }
+      };
+
+    void loadUsersCount();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const displayName =
+    user
+      ? isArabic
+        ? `${user.firstName} ${user.lastName}`
+        : `${user.firstName} ${user.lastName}`
+      : "";
 
   const lowStockArticles =
     initialMockArticles.filter(
@@ -58,13 +128,15 @@ function DashboardPage() {
   const activeLights =
     initialMockLights.filter(
       (light) =>
-        light.status === "ACTIVE",
+        light.status ===
+        "ACTIVE",
     );
 
   const damagedLights =
     initialMockLights.filter(
       (light) =>
-        light.status === "DAMAGED",
+        light.status ===
+        "DAMAGED",
     );
 
   const maintenanceLights =
@@ -94,7 +166,8 @@ function DashboardPage() {
       label: t(
         "dashboard.statistics.users",
       ),
-      value: 2,
+      value:
+        usersCount,
       description: t(
         "dashboard.statistics.usersDescription",
       ),
@@ -238,7 +311,9 @@ function DashboardPage() {
     initialMockMovements.map(
       (movement) => ({
         date:
-          movement.date.slice(5),
+          movement.date.slice(
+            5,
+          ),
 
         entries:
           movement.type ===
@@ -257,45 +332,49 @@ function DashboardPage() {
   const alerts = [
     ...lowStockArticles.map(
       (article) => ({
-        id: `stock-${article.id}`,
+        id:
+          `stock-${article.id}`,
         title: t(
           "dashboard.alerts.lowStock",
         ),
         message:
           `${article.designation} : ${article.quantity} ${article.unit}`,
-        type: "stock",
+        type:
+          "stock",
       }),
     ),
 
     ...unresolvedFailures.map(
       (failure) => ({
-        id: `failure-${failure.id}`,
+        id:
+          `failure-${failure.id}`,
         title: t(
           "dashboard.alerts.lightingFailure",
         ),
         message:
           `${failure.lightReference} — ${failure.description}`,
-        type: "lighting",
+        type:
+          "lighting",
       }),
     ),
 
     ...maintenanceBiens.map(
       (bien) => ({
-        id: `asset-${bien.id}`,
+        id:
+          `asset-${bien.id}`,
         title: t(
           "dashboard.alerts.assetMaintenance",
         ),
         message:
           bien.designation,
-        type: "asset",
+        type:
+          "asset",
       }),
     ),
   ];
 
   return (
     <section className="space-y-6">
-      {/* ================= WELCOME ================= */}
-
       <div className="moroccan-pattern relative overflow-hidden rounded-3xl border border-orange-100 bg-white p-6 shadow-sm transition-colors dark:border-slate-700 dark:bg-slate-800 sm:p-7">
         <div className="relative z-10">
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
@@ -309,8 +388,7 @@ function DashboardPage() {
                   "dashboard.welcome",
                   {
                     name:
-                      user?.firstName ??
-                      "",
+                      displayName,
                   },
                 )}
               </h1>
@@ -336,8 +414,6 @@ function DashboardPage() {
           </div>
         </div>
       </div>
-
-      {/* ================= STATISTICS ================= */}
 
       {visibleStatistics.length >
         0 && (
@@ -377,7 +453,9 @@ function DashboardPage() {
 
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 transition-all duration-300 group-hover:rotate-3 group-hover:scale-110 group-hover:bg-orange-600 group-hover:text-white dark:bg-orange-500/15 dark:text-orange-400">
                       <Icon
-                        size={23}
+                        size={
+                          23
+                        }
                       />
                     </div>
                   </div>
@@ -387,8 +465,6 @@ function DashboardPage() {
           )}
         </div>
       )}
-
-      {/* ================= ALERT STATS ================= */}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {hasPermission(
@@ -488,8 +564,6 @@ function DashboardPage() {
         )}
       </div>
 
-      {/* ================= CHARTS ================= */}
-
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         {hasPermission(
           PERMISSIONS.GET_STOCK_HISTORY,
@@ -525,25 +599,32 @@ function DashboardPage() {
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    vertical={false}
+                    vertical={
+                      false
+                    }
                     stroke="#cbd5e1"
-                    opacity={0.35}
+                    opacity={
+                      0.35
+                    }
                   />
 
                   <XAxis
                     dataKey="date"
-                    tickLine={false}
+                    tickLine={
+                      false
+                    }
                   />
 
                   <YAxis
-                    tickLine={false}
+                    tickLine={
+                      false
+                    }
                     allowDecimals={
                       false
                     }
                   />
 
                   <Tooltip />
-
                   <Legend />
 
                   <Bar
@@ -607,9 +688,15 @@ function DashboardPage() {
                     }
                     dataKey="value"
                     nameKey="name"
-                    innerRadius={55}
-                    outerRadius={85}
-                    paddingAngle={4}
+                    innerRadius={
+                      55
+                    }
+                    outerRadius={
+                      85
+                    }
+                    paddingAngle={
+                      4
+                    }
                   >
                     <Cell fill="#16a34a" />
                     <Cell fill="#dc2626" />
@@ -658,8 +745,6 @@ function DashboardPage() {
         )}
       </div>
 
-      {/* ================= BOTTOM ================= */}
-
       <div className="grid gap-6 xl:grid-cols-2">
         {hasPermission(
           PERMISSIONS.GET_ALL_ASSETS,
@@ -694,7 +779,9 @@ function DashboardPage() {
                       false
                     }
                     stroke="#cbd5e1"
-                    opacity={0.35}
+                    opacity={
+                      0.35
+                    }
                   />
 
                   <XAxis
@@ -707,8 +794,12 @@ function DashboardPage() {
                   <YAxis
                     type="category"
                     dataKey="name"
-                    width={105}
-                    tickLine={false}
+                    width={
+                      105
+                    }
+                    tickLine={
+                      false
+                    }
                   />
 
                   <Tooltip />
@@ -749,7 +840,8 @@ function DashboardPage() {
           </div>
 
           <div className="mt-5 space-y-3">
-            {alerts.length === 0 ? (
+            {alerts.length ===
+            0 ? (
               <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500 dark:bg-slate-900 dark:text-slate-400">
                 {t(
                   "dashboard.alerts.empty",
@@ -762,7 +854,9 @@ function DashboardPage() {
                   5,
                 )
                 .map(
-                  (alert) => (
+                  (
+                    alert,
+                  ) => (
                     <div
                       key={
                         alert.id

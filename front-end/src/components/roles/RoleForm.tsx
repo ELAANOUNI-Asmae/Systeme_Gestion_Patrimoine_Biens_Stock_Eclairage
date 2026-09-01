@@ -1,10 +1,11 @@
 import {
-  useEffect,
   useState,
   type FormEvent,
 } from "react";
 
-import { useTranslation } from "react-i18next";
+import {
+  useTranslation,
+} from "react-i18next";
 
 import {
   getPermissionLabel,
@@ -37,20 +38,28 @@ function RoleForm({
   loading = false,
   onSubmit,
 }: RoleFormProps) {
-  const { t } =
-    useTranslation();
+  const {
+    t,
+    i18n,
+  } = useTranslation();
 
-  const [formData, setFormData] =
+  const [
+    formData,
+    setFormData,
+  ] =
     useState<RoleFormData>(
       initialValues,
     );
 
-  const [error, setError] =
-    useState("");
+  const [
+    error,
+    setError,
+  ] = useState("");
 
-  useEffect(() => {
-    setFormData(initialValues);
-  }, [initialValues]);
+  const isArabic =
+    i18n.language.startsWith(
+      "ar",
+    );
 
   const togglePermission = (
     permissionId: number,
@@ -64,17 +73,17 @@ function RoleForm({
 
         return {
           ...previousData,
-
-          permissionIds: selected
-            ? previousData.permissionIds.filter(
-                (id) =>
-                  id !==
+          permissionIds:
+            selected
+              ? previousData.permissionIds.filter(
+                  (id) =>
+                    id !==
+                    permissionId,
+                )
+              : [
+                  ...previousData.permissionIds,
                   permissionId,
-              )
-            : [
-                ...previousData.permissionIds,
-                permissionId,
-              ],
+                ],
         };
       },
     );
@@ -82,12 +91,16 @@ function RoleForm({
     setError("");
   };
 
+  const allSelected =
+    permissions.length > 0 &&
+    formData.permissionIds.length ===
+      permissions.length;
+
   const selectAllPermissions =
     () => {
       setFormData(
         (previousData) => ({
           ...previousData,
-
           permissionIds:
             permissions.map(
               (permission) =>
@@ -95,6 +108,8 @@ function RoleForm({
             ),
         }),
       );
+
+      setError("");
     };
 
   const clearPermissions =
@@ -112,7 +127,9 @@ function RoleForm({
   ) => {
     event.preventDefault();
 
-    if (!formData.name.trim()) {
+    if (
+      !formData.name.trim()
+    ) {
       setError(
         t(
           "roles.form.nameRequired",
@@ -122,8 +139,8 @@ function RoleForm({
     }
 
     if (
-      formData.permissionIds
-        .length === 0
+      formData.permissionIds.length ===
+      0
     ) {
       setError(
         t(
@@ -137,7 +154,9 @@ function RoleForm({
 
     await onSubmit({
       name:
-        formData.name.trim(),
+        formData.name
+          .trim()
+          .toUpperCase(),
       permissionIds:
         formData.permissionIds,
     });
@@ -147,15 +166,21 @@ function RoleForm({
     <form
       onSubmit={handleSubmit}
       className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6"
+      noValidate
     >
       {error && (
-        <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
+        <div
+          role="alert"
+          className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400"
+        >
           {error}
         </div>
       )}
 
       <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-        {t("roles.form.name")}{" "}
+        {t(
+          "roles.form.name",
+        )}{" "}
         <span className="text-red-500">
           *
         </span>
@@ -168,24 +193,22 @@ function RoleForm({
               (previousData) => ({
                 ...previousData,
                 name:
-                  event.target
-                    .value,
+                  event.target.value,
               }),
             );
-
             setError("");
           }}
           placeholder={t(
             "roles.form.namePlaceholder",
           )}
-          className="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm uppercase text-slate-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+          className="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
         />
       </label>
 
       <div className="mt-6">
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
-            <h2 className="font-semibold text-slate-900 dark:text-white">
+            <h2 className="font-bold text-slate-900 dark:text-white">
               {t(
                 "roles.form.permissions",
               )}
@@ -201,10 +224,12 @@ function RoleForm({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={
-                selectAllPermissions
+              onClick={selectAllPermissions}
+              disabled={
+                loading ||
+                allSelected
               }
-              className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
+              className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-orange-300 hover:text-orange-600 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200"
             >
               {t(
                 "roles.form.selectAll",
@@ -213,10 +238,13 @@ function RoleForm({
 
             <button
               type="button"
-              onClick={
-                clearPermissions
+              onClick={clearPermissions}
+              disabled={
+                loading ||
+                formData.permissionIds.length ===
+                  0
               }
-              className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
+              className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-orange-300 hover:text-orange-600 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200"
             >
               {t(
                 "roles.form.clearAll",
@@ -235,11 +263,9 @@ function RoleForm({
 
               return (
                 <label
-                  key={
-                    permission.id
-                  }
+                  key={permission.id}
                   className={[
-                    "flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition",
+                    "flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition",
                     checked
                       ? "border-orange-300 bg-orange-50 dark:border-orange-500/50 dark:bg-orange-500/10"
                       : "border-slate-200 hover:border-orange-200 dark:border-slate-700 dark:hover:border-orange-500/40",
@@ -247,30 +273,24 @@ function RoleForm({
                 >
                   <input
                     type="checkbox"
-                    checked={
-                      checked
-                    }
+                    checked={checked}
                     onChange={() =>
                       togglePermission(
                         permission.id,
                       )
                     }
-                    className="mt-1 h-4 w-4 accent-orange-600"
+                    disabled={loading}
+                    className="h-4 w-4 shrink-0 accent-orange-600"
                   />
 
-                  <span>
-                    <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">
-                      {getPermissionLabel(
-                        permission.permission,
-                        t,
-                      )}
-                    </span>
-
-                    <span className="mt-1 block text-xs font-mono text-slate-500 dark:text-slate-400">
-                      {
-                        permission.permission
-                      }
-                    </span>
+                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                    {getPermissionLabel(
+                      permission.permission,
+                      t,
+                      isArabic
+                        ? "ar"
+                        : "fr",
+                    )}
                   </span>
                 </label>
               );

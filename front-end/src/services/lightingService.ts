@@ -2,495 +2,251 @@ import {
   initialMockFailures,
   initialMockInterventions,
   initialMockLights,
+  initialMockTechnicians,
 } from "../mock/lighting";
 
+import type { AppDocument } from "../types/document";
 import type {
   Failure,
   FailureStatus,
   Intervention,
+  InterventionCompletionData,
+  InterventionPlanData,
   Light,
   LightFormData,
+  Technician,
 } from "../types/lighting";
 
-import type {
-  AppDocument,
-} from "../types/document";
+const delay = (milliseconds = 150) =>
+  new Promise<void>((resolve) => {
+    window.setTimeout(resolve, milliseconds);
+  });
 
-let lights: Light[] =
-  initialMockLights.map(
-    (light) => ({
-      ...light,
-      documents: light.documents.map(
-        (document) => ({
-          ...document,
-        }),
-      ),
-    }),
-  );
+const cloneDocuments = (documents: AppDocument[] = []) =>
+  documents.map((document) => ({ ...document }));
 
-let failures: Failure[] =
-  initialMockFailures.map(
-    (failure) => ({
-      ...failure,
-      documents: failure.documents.map(
-        (document) => ({
-          ...document,
-        }),
-      ),
-    }),
-  );
+const cloneLight = (light: Light): Light => ({
+  ...light,
+  documents: cloneDocuments(light.documents),
+});
 
+const cloneFailure = (failure: Failure): Failure => ({
+  ...failure,
+  documents: cloneDocuments(failure.documents),
+});
+
+const cloneIntervention = (intervention: Intervention): Intervention => ({
+  ...intervention,
+  photos: cloneDocuments(intervention.photos),
+  documents: cloneDocuments(intervention.documents),
+});
+
+let lights: Light[] = initialMockLights.map(cloneLight);
+let failures: Failure[] = initialMockFailures.map(cloneFailure);
 let interventions: Intervention[] =
-  initialMockInterventions.map(
-    (intervention) => ({
-      ...intervention,
-      documents:
-        intervention.documents.map(
-          (document) => ({
-            ...document,
-          }),
-        ),
-    }),
+  initialMockInterventions.map(cloneIntervention);
+const technicians: Technician[] =
+  initialMockTechnicians.map((item) => ({ ...item }));
+
+const getLightOrThrow = (id: number) => {
+  const light = lights.find((item) => item.id === id);
+  if (!light) throw new Error("Point lumineux introuvable.");
+  return light;
+};
+
+const getFailureOrThrow = (id: number) => {
+  const failure = failures.find((item) => item.id === id);
+  if (!failure) throw new Error("Panne introuvable.");
+  return failure;
+};
+
+const synchronizeLightStatus = (lightId: number) => {
+  const light = lights.find((item) => item.id === lightId);
+  if (!light) return;
+
+  const unresolved = failures.filter(
+    (failure) =>
+      failure.lightId === lightId &&
+      failure.status !== "RESOLVED",
   );
 
-const delay = (
-  milliseconds = 200,
-) =>
-  new Promise<void>(
-    (resolve) => {
-      setTimeout(
-        resolve,
-        milliseconds,
-      );
-    },
+  if (unresolved.length === 0) {
+    if (
+      light.status === "DAMAGED" ||
+      light.status === "UNDER_MAINTENANCE"
+    ) {
+      light.status = "ACTIVE";
+    }
+    return;
+  }
+
+  const hasActiveIntervention = unresolved.some((failure) =>
+    interventions.some(
+      (intervention) =>
+        intervention.failureId === failure.id &&
+        !intervention.completed,
+    ),
   );
 
-const cloneDocuments = (
-  documents: AppDocument[],
-) =>
-  documents.map(
-    (document) => ({
-      ...document,
-    }),
-  );
+  light.status = hasActiveIntervention
+    ? "UNDER_MAINTENANCE"
+    : "DAMAGED";
+};
 
 export const lightingService = {
-  async getLights(): Promise<
-    Light[]
-  > {
+  async getLights(): Promise<Light[]> {
     await delay();
-
-    return lights.map(
-      (light) => ({
-        ...light,
-        documents:
-          cloneDocuments(
-            light.documents,
-          ),
-      }),
-    );
+    return lights.map(cloneLight);
   },
 
-  async getLightById(
-    id: number,
-  ): Promise<Light> {
+  async getLightById(id: number): Promise<Light> {
     await delay();
-
-    const light =
-      lights.find(
-        (item) =>
-          item.id === id,
-      );
-
-    if (!light) {
-      throw new Error(
-        "Point lumineux introuvable.",
-      );
-    }
-
-    return {
-      ...light,
-      documents:
-        cloneDocuments(
-          light.documents,
-        ),
-    };
+    return cloneLight(getLightOrThrow(id));
   },
 
-  async createLight(
-    data: LightFormData,
-  ): Promise<Light> {
+  async getTechnicians(): Promise<Technician[]> {
+    await delay(80);
+    return technicians
+      .filter((item) => item.active)
+      .map((item) => ({ ...item }));
+  },
+
+  async createLight(data: LightFormData): Promise<Light> {
     await delay();
 
-    const exists =
+    const reference = data.reference.trim().toUpperCase();
+
+    if (
       lights.some(
         (light) =>
-          light.reference
-            .toLowerCase() ===
-          data.reference
-            .trim()
-            .toLowerCase(),
-      );
-
-    if (exists) {
-      throw new Error(
-        "Cette référence existe déjà.",
-      );
-    }
-
-    const newLight: Light = {
-      id:
-        Math.max(
-          0,
-          ...lights.map(
-            (light) =>
-              light.id,
-          ),
-        ) + 1,
-
-      reference:
-        data.reference
-          .trim()
-          .toUpperCase(),
-
-      designation:
-        data.designation.trim(),
-
-      designationAr:
-        data.designationAr.trim(),
-
-      zone:
-        data.zone.trim(),
-
-      zoneAr:
-        data.zoneAr.trim(),
-
-      address:
-        data.address.trim(),
-
-      addressAr:
-        data.addressAr.trim(),
-
-      latitude:
-        data.latitude,
-
-      longitude:
-        data.longitude,
-
-      status:
-        data.status,
-
-      installationDate:
-        data.installationDate,
-
-      power:
-        data.power,
-
-      documents:
-        cloneDocuments(
-          data.documents ?? [],
-        ),
-    };
-
-    lights = [
-      newLight,
-      ...lights,
-    ];
-
-    return {
-      ...newLight,
-      documents:
-        cloneDocuments(
-          newLight.documents,
-        ),
-    };
-  },
-
-  async updateLight(
-    id: number,
-    data: LightFormData,
-  ): Promise<Light> {
-    await delay();
-
-    const index =
-      lights.findIndex(
-        (light) =>
-          light.id === id,
-      );
-
-    if (index === -1) {
-      throw new Error(
-        "Point lumineux introuvable.",
-      );
-    }
-
-    const referenceExists =
-      lights.some(
-        (light) =>
-          light.id !== id &&
-          light.reference
-            .toLowerCase() ===
-            data.reference
-              .trim()
-              .toLowerCase(),
-      );
-
-    if (referenceExists) {
-      throw new Error(
-        "Cette référence existe déjà.",
-      );
-    }
-
-    const activeFailure =
-      failures.find(
-        (failure) =>
-          failure.lightId === id &&
-          failure.status !==
-            "RESOLVED",
-      );
-
-    const synchronizedStatus =
-      activeFailure
-        ? activeFailure.status ===
-          "IN_PROGRESS"
-          ? "UNDER_MAINTENANCE"
-          : "DAMAGED"
-        : data.status;
-
-    const updatedLight: Light = {
-      id,
-
-      reference:
-        data.reference
-          .trim()
-          .toUpperCase(),
-
-      designation:
-        data.designation.trim(),
-
-      designationAr:
-        data.designationAr.trim(),
-
-      zone:
-        data.zone.trim(),
-
-      zoneAr:
-        data.zoneAr.trim(),
-
-      address:
-        data.address.trim(),
-
-      addressAr:
-        data.addressAr.trim(),
-
-      latitude:
-        data.latitude,
-
-      longitude:
-        data.longitude,
-
-      status:
-        synchronizedStatus,
-
-      installationDate:
-        data.installationDate,
-
-      power:
-        data.power,
-
-      documents:
-        cloneDocuments(
-          data.documents ?? [],
-        ),
-    };
-
-    lights[index] =
-      updatedLight;
-
-    return {
-      ...updatedLight,
-      documents:
-        cloneDocuments(
-          updatedLight.documents,
-        ),
-    };
-  },
-
-  async removeLight(
-    id: number,
-  ): Promise<void> {
-    await delay();
-
-    const relatedFailureIds =
-      failures
-        .filter(
-          (failure) =>
-            failure.lightId ===
-            id,
-        )
-        .map(
-          (failure) =>
-            failure.id,
-        );
-
-    interventions =
-      interventions.filter(
-        (intervention) =>
-          !relatedFailureIds.includes(
-            intervention.failureId,
-          ),
-      );
-
-    failures =
-      failures.filter(
-        (failure) =>
-          failure.lightId !==
-          id,
-      );
-
-    lights =
-      lights.filter(
-        (light) =>
-          light.id !== id,
-      );
-  },
-
-  async getFailures(): Promise<
-    Failure[]
-  > {
-    await delay();
-
-    return failures.map(
-      (failure) => ({
-        ...failure,
-        documents:
-          cloneDocuments(
-            failure.documents,
-          ),
-      }),
-    );
-  },
-
-  async getFailuresByLightId(
-    lightId: number,
-  ): Promise<Failure[]> {
-    await delay();
-
-    return failures
-      .filter(
-        (failure) =>
-          failure.lightId ===
-          lightId,
+          light.reference.toUpperCase() === reference,
       )
-      .map(
-        (failure) => ({
-          ...failure,
-          documents:
-            cloneDocuments(
-              failure.documents,
-            ),
-        }),
-      );
-  },
-
-  async createFailure(
-    data: {
-      lightId: number;
-      description: string;
-      reportedBy: string;
-      documents?: AppDocument[];
-    },
-  ): Promise<Failure> {
-    await delay();
-
-    const light =
-      lights.find(
-        (item) =>
-          item.id ===
-          data.lightId,
-      );
-
-    if (!light) {
-      throw new Error(
-        "Point lumineux introuvable.",
-      );
+    ) {
+      throw new Error("Cette référence existe déjà.");
     }
 
-    const activeFailure =
-      failures.find(
-        (failure) =>
-          failure.lightId ===
-            light.id &&
-          failure.status !==
-            "RESOLVED",
-      );
+    const light: Light = {
+      id: Math.max(0, ...lights.map((item) => item.id)) + 1,
+      reference,
+      designation: data.designation.trim(),
+      designationAr: data.designationAr.trim(),
+      localisation: data.localisation.trim(),
+      latitude: data.latitude,
+      longitude: data.longitude,
+      status: "ACTIVE",
+      installationDate: data.installationDate,
+      power: data.power,
+      documents: cloneDocuments(data.documents),
+    };
 
-    if (activeFailure) {
+    lights = [light, ...lights];
+    return cloneLight(light);
+  },
+
+  async updateLight(id: number, data: LightFormData): Promise<Light> {
+    await delay();
+
+    const index = lights.findIndex((item) => item.id === id);
+    if (index === -1) throw new Error("Point lumineux introuvable.");
+
+    const reference = data.reference.trim().toUpperCase();
+
+    if (
+      lights.some(
+        (item) =>
+          item.id !== id &&
+          item.reference.toUpperCase() === reference,
+      )
+    ) {
+      throw new Error("Cette référence existe déjà.");
+    }
+
+    lights[index] = {
+      ...lights[index],
+      reference,
+      designation: data.designation.trim(),
+      designationAr: data.designationAr.trim(),
+      localisation: data.localisation.trim(),
+      latitude: data.latitude,
+      longitude: data.longitude,
+      status: data.status,
+      installationDate: data.installationDate,
+      power: data.power,
+      documents: cloneDocuments(data.documents),
+    };
+
+    synchronizeLightStatus(id);
+    return cloneLight(lights[index]);
+  },
+
+  async removeLight(id: number): Promise<void> {
+    await delay();
+
+    const failureIds = failures
+      .filter((failure) => failure.lightId === id)
+      .map((failure) => failure.id);
+
+    interventions = interventions.filter(
+      (intervention) =>
+        !failureIds.includes(intervention.failureId),
+    );
+    failures = failures.filter(
+      (failure) => failure.lightId !== id,
+    );
+    lights = lights.filter((light) => light.id !== id);
+  },
+
+  async getFailures(): Promise<Failure[]> {
+    await delay();
+    return failures.map(cloneFailure);
+  },
+
+  async getFailuresByLightId(lightId: number): Promise<Failure[]> {
+    await delay();
+    return failures
+      .filter((failure) => failure.lightId === lightId)
+      .map(cloneFailure);
+  },
+
+  async createFailure(data: {
+    lightId: number;
+    description: string;
+    reportedBy: string;
+    documents?: AppDocument[];
+  }): Promise<Failure> {
+    await delay();
+
+    const light = getLightOrThrow(data.lightId);
+
+    if (
+      failures.some(
+        (failure) =>
+          failure.lightId === light.id &&
+          failure.status !== "RESOLVED",
+      )
+    ) {
       throw new Error(
         "Une panne non résolue existe déjà pour ce point lumineux.",
       );
     }
 
-    const newFailure: Failure = {
-      id:
-        Math.max(
-          0,
-          ...failures.map(
-            (failure) =>
-              failure.id,
-          ),
-        ) + 1,
-
-      lightId:
-        light.id,
-
-      lightReference:
-        light.reference,
-
-      lightDesignation:
-        light.designation,
-
-      lightDesignationAr:
-        light.designationAr,
-
-      description:
-        data.description.trim(),
-
-      reportedBy:
-        data.reportedBy.trim(),
-
-      reportedAt:
-        new Date()
-          .toISOString()
-          .slice(
-            0,
-            10,
-          ),
-
-      status:
-        "REPORTED",
-
-      documents:
-        cloneDocuments(
-          data.documents ?? [],
-        ),
+    const failure: Failure = {
+      id: Math.max(0, ...failures.map((item) => item.id)) + 1,
+      lightId: light.id,
+      lightReference: light.reference,
+      lightDesignation: light.designation,
+      lightDesignationAr: light.designationAr,
+      description: data.description.trim(),
+      reportedBy: data.reportedBy.trim() || "PUBLIC",
+      reportedAt: new Date().toISOString().slice(0, 10),
+      status: "REPORTED",
+      documents: cloneDocuments(data.documents ?? []),
     };
 
-    failures = [
-      newFailure,
-      ...failures,
-    ];
+    failures = [failure, ...failures];
+    light.status = "DAMAGED";
 
-    light.status =
-      "DAMAGED";
-
-    return {
-      ...newFailure,
-      documents:
-        cloneDocuments(
-          newFailure.documents,
-        ),
-    };
+    return cloneFailure(failure);
   },
 
   async updateFailureStatus(
@@ -498,258 +254,135 @@ export const lightingService = {
     status: FailureStatus,
   ): Promise<Failure> {
     await delay();
-
-    const failure =
-      failures.find(
-        (item) =>
-          item.id === id,
-      );
-
-    if (!failure) {
-      throw new Error(
-        "Panne introuvable.",
-      );
-    }
-
-    failure.status =
-      status;
-
-    const light =
-      lights.find(
-        (item) =>
-          item.id ===
-          failure.lightId,
-      );
-
-    if (light) {
-      if (
-        status === "REPORTED"
-      ) {
-        light.status =
-          "DAMAGED";
-      }
-
-      if (
-        status ===
-        "IN_PROGRESS"
-      ) {
-        light.status =
-          "UNDER_MAINTENANCE";
-      }
-
-      if (
-        status ===
-        "RESOLVED"
-      ) {
-        light.status =
-          "ACTIVE";
-      }
-    }
-
-    return {
-      ...failure,
-      documents:
-        cloneDocuments(
-          failure.documents,
-        ),
-    };
+    const failure = getFailureOrThrow(id);
+    failure.status = status;
+    synchronizeLightStatus(failure.lightId);
+    return cloneFailure(failure);
   },
 
-  async getInterventions(): Promise<
-    Intervention[]
-  > {
+  async getInterventions(): Promise<Intervention[]> {
     await delay();
-
-    return interventions.map(
-      (intervention) => ({
-        ...intervention,
-        documents:
-          cloneDocuments(
-            intervention.documents,
-          ),
-      }),
-    );
+    return interventions.map(cloneIntervention);
   },
 
   async getInterventionsByFailureId(
     failureId: number,
   ): Promise<Intervention[]> {
     await delay();
-
     return interventions
-      .filter(
-        (intervention) =>
-          intervention.failureId ===
-          failureId,
-      )
-      .map(
-        (intervention) => ({
-          ...intervention,
-          documents:
-            cloneDocuments(
-              intervention.documents,
-            ),
-        }),
-      );
+      .filter((item) => item.failureId === failureId)
+      .map(cloneIntervention);
   },
 
   async createIntervention(
-    data: {
-      failureId: number;
-      technician: string;
-      interventionDate: string;
-      description: string;
-      documents?: AppDocument[];
-    },
+    data: InterventionPlanData,
   ): Promise<Intervention> {
     await delay();
 
-    const failure =
-      failures.find(
-        (item) =>
-          item.id ===
-          data.failureId,
-      );
+    const failure = getFailureOrThrow(data.failureId);
 
-    if (!failure) {
+    if (failure.status === "RESOLVED") {
       throw new Error(
-        "Panne introuvable.",
+        "Impossible de planifier une intervention pour une panne résolue.",
       );
     }
 
     if (
-      failure.status ===
-      "RESOLVED"
+      interventions.some(
+        (item) =>
+          item.failureId === failure.id &&
+          !item.completed,
+      )
     ) {
       throw new Error(
-        "Impossible d’ajouter une intervention à une panne déjà résolue.",
+        "Une intervention active existe déjà pour cette panne.",
       );
     }
 
-    const activeIntervention =
-      interventions.find(
-        (intervention) =>
-          intervention.failureId ===
-            failure.id &&
-          !intervention.completed,
-      );
+    const technician = technicians.find(
+      (item) =>
+        item.id === data.technicianId &&
+        item.active,
+    );
 
-    if (activeIntervention) {
-      throw new Error(
-        "Une intervention est déjà en cours pour cette panne.",
-      );
+    if (!technician) {
+      throw new Error("Technicien introuvable ou inactif.");
     }
 
     const intervention: Intervention = {
       id:
         Math.max(
           0,
-          ...interventions.map(
-            (item) =>
-              item.id,
-          ),
+          ...interventions.map((item) => item.id),
         ) + 1,
-
-      failureId:
-        failure.id,
-
-      technician:
-        data.technician.trim(),
-
-      interventionDate:
-        data.interventionDate,
-
-      description:
-        data.description.trim(),
-
-      completed:
-        false,
-
-      documents:
-        cloneDocuments(
-          data.documents ?? [],
-        ),
+      failureId: failure.id,
+      technicianId: technician.id,
+      technicianName: technician.name,
+      technicianNameAr: technician.nameAr,
+      technicianLocalisation: technician.localisation,
+      interventionDate: data.interventionDate,
+      description: data.description.trim(),
+      completed: false,
+      photos: [],
+      documents: cloneDocuments(data.documents ?? []),
     };
 
-    interventions = [
-      intervention,
-      ...interventions,
-    ];
+    interventions = [intervention, ...interventions];
+    failure.status = "IN_PROGRESS";
+    getLightOrThrow(failure.lightId).status =
+      "UNDER_MAINTENANCE";
 
-    failure.status =
-      "IN_PROGRESS";
-
-    const light =
-      lights.find(
-        (item) =>
-          item.id ===
-          failure.lightId,
-      );
-
-    if (light) {
-      light.status =
-        "UNDER_MAINTENANCE";
-    }
-
-    return {
-      ...intervention,
-      documents:
-        cloneDocuments(
-          intervention.documents,
-        ),
-    };
+    return cloneIntervention(intervention);
   },
 
   async completeIntervention(
     id: number,
+    data: InterventionCompletionData,
   ): Promise<Intervention> {
     await delay();
 
     const intervention =
-      interventions.find(
-        (item) =>
-          item.id === id,
-      );
+      interventions.find((item) => item.id === id);
 
     if (!intervention) {
+      throw new Error("Intervention introuvable.");
+    }
+    if (intervention.completed) {
+      throw new Error("Cette intervention est déjà terminée.");
+    }
+    if (!data.report.trim()) {
       throw new Error(
-        "Intervention introuvable.",
+        "Le rapport d’intervention est obligatoire.",
+      );
+    }
+    if (!Number.isFinite(data.cost) || data.cost < 0) {
+      throw new Error(
+        "Le coût doit être supérieur ou égal à 0.",
+      );
+    }
+    if (data.photos.length < 1) {
+      throw new Error(
+        "Ajoutez au moins une photo de l’intervention.",
       );
     }
 
-    intervention.completed =
-      true;
+    intervention.completed = true;
+    intervention.completedAt =
+      data.completedAt ||
+      new Date().toISOString().slice(0, 10);
+    intervention.report = data.report.trim();
+    intervention.cost = data.cost;
+    intervention.photos = cloneDocuments(data.photos);
+    intervention.documents = [
+      ...intervention.documents,
+      ...cloneDocuments(data.documents ?? []),
+    ];
 
     const failure =
-      failures.find(
-        (item) =>
-          item.id ===
-          intervention.failureId,
-      );
+      getFailureOrThrow(intervention.failureId);
+    failure.status = "RESOLVED";
+    getLightOrThrow(failure.lightId).status = "ACTIVE";
 
-    if (failure) {
-      failure.status =
-        "RESOLVED";
-
-      const light =
-        lights.find(
-          (item) =>
-            item.id ===
-            failure.lightId,
-        );
-
-      if (light) {
-        light.status =
-          "ACTIVE";
-      }
-    }
-
-    return {
-      ...intervention,
-      documents:
-        cloneDocuments(
-          intervention.documents,
-        ),
-    };
+    return cloneIntervention(intervention);
   },
 };

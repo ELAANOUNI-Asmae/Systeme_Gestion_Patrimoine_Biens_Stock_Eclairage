@@ -8,9 +8,12 @@ import type {
   UserFormData,
 } from "../types/user";
 
-let users: User[] = [
-  ...mockUsers,
-];
+let users: User[] =
+  mockUsers.map(
+    (user) => ({
+      ...user,
+    }),
+  );
 
 const delay = (
   milliseconds = 250,
@@ -35,9 +38,7 @@ export type ProfileUpdateData = {
 };
 
 export const userService = {
-  async getAll(): Promise<
-    User[]
-  > {
+  async getAll(): Promise<User[]> {
     await delay();
 
     return users.map(
@@ -52,10 +53,11 @@ export const userService = {
   ): Promise<User> {
     await delay();
 
-    const user = users.find(
-      (item) =>
-        item.id === id,
-    );
+    const user =
+      users.find(
+        (item) =>
+          item.id === id,
+      );
 
     if (!user) {
       throw new Error(
@@ -86,13 +88,16 @@ export const userService = {
       );
     }
 
+    const normalizedEmail =
+      data.email
+        .trim()
+        .toLowerCase();
+
     const emailExists =
       users.some(
         (item) =>
           item.email.toLowerCase() ===
-          data.email
-            .trim()
-            .toLowerCase(),
+          normalizedEmail,
       );
 
     if (emailExists) {
@@ -124,9 +129,7 @@ export const userService = {
         data.lastnameAr.trim(),
 
       email:
-        data.email
-          .trim()
-          .toLowerCase(),
+        normalizedEmail,
 
       gender:
         data.gender,
@@ -140,6 +143,8 @@ export const userService = {
           .toUpperCase(),
 
       role,
+
+      active: true,
     };
 
     users = [
@@ -185,14 +190,17 @@ export const userService = {
       );
     }
 
+    const normalizedEmail =
+      data.email
+        .trim()
+        .toLowerCase();
+
     const emailExists =
       users.some(
         (item) =>
           item.id !== id &&
           item.email.toLowerCase() ===
-            data.email
-              .trim()
-              .toLowerCase(),
+            normalizedEmail,
       );
 
     if (emailExists) {
@@ -201,9 +209,11 @@ export const userService = {
       );
     }
 
-    const updatedUser:
-      User = {
-      id,
+    const currentUser =
+      users[userIndex];
+
+    const updatedUser: User = {
+      ...currentUser,
 
       firstname:
         data.firstname.trim(),
@@ -218,9 +228,7 @@ export const userService = {
         data.lastnameAr.trim(),
 
       email:
-        data.email
-          .trim()
-          .toLowerCase(),
+        normalizedEmail,
 
       gender:
         data.gender,
@@ -246,8 +254,7 @@ export const userService = {
 
   async updateProfile(
     id: number,
-    data:
-      ProfileUpdateData,
+    data: ProfileUpdateData,
   ): Promise<User> {
     await delay();
 
@@ -268,8 +275,7 @@ export const userService = {
     const currentUser =
       users[userIndex];
 
-    const updatedUser:
-      User = {
+    const updatedUser: User = {
       ...currentUser,
 
       firstname:
@@ -293,6 +299,36 @@ export const userService = {
 
     return {
       ...updatedUser,
+    };
+  },
+
+  async setActive(
+    id: number,
+    active: boolean,
+  ): Promise<User> {
+    await delay();
+
+    const userIndex =
+      users.findIndex(
+        (item) =>
+          item.id === id,
+      );
+
+    if (
+      userIndex === -1
+    ) {
+      throw new Error(
+        "USER_NOT_FOUND",
+      );
+    }
+
+    users[userIndex] = {
+      ...users[userIndex],
+      active,
+    };
+
+    return {
+      ...users[userIndex],
     };
   },
 

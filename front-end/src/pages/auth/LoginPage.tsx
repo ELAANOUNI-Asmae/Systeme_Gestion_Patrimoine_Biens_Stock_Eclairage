@@ -26,22 +26,22 @@ function LoginPage() {
     toggleTheme,
   } = useTheme();
 
+  const isArabic =
+    i18n.language.startsWith(
+      "ar",
+    );
+
   const handleLanguageChange =
     async () => {
-      const nextLanguage =
-        i18n.language.startsWith("ar")
-          ? "fr"
-          : "ar";
-
       await i18n.changeLanguage(
-        nextLanguage,
+        isArabic
+          ? "fr"
+          : "ar",
       );
     };
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-100 transition-colors dark:bg-slate-950">
-      {/* Top controls */}
-
       <div className="absolute inset-e-4 top-4 z-30 flex items-center gap-2 sm:inset-e-6 sm:top-6">
         <button
           type="button"
@@ -53,20 +53,30 @@ function LoginPage() {
           <Languages size={18} />
 
           <span>
-            {i18n.language.startsWith(
-              "ar",
-            )
+            {isArabic
               ? "FR"
-              : "عربي"}
+              : "العربية"}
           </span>
         </button>
 
         <button
           type="button"
-          onClick={toggleTheme}
+          onClick={
+            toggleTheme
+          }
           className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/90 text-slate-700 shadow-sm backdrop-blur transition hover:border-orange-200 hover:text-orange-600 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-200 dark:hover:border-orange-500/40 dark:hover:text-amber-400"
+          aria-label={
+            theme === "dark"
+              ? t(
+                  "header.lightMode",
+                )
+              : t(
+                  "header.darkMode",
+                )
+          }
         >
-          {theme === "dark" ? (
+          {theme ===
+          "dark" ? (
             <Sun size={18} />
           ) : (
             <Moon size={18} />
@@ -75,8 +85,6 @@ function LoginPage() {
       </div>
 
       <div className="grid min-h-screen lg:grid-cols-2">
-        {/* Login side */}
-
         <section className="relative flex items-center justify-center px-6 py-20 sm:px-10">
           <div className="moroccan-pattern absolute inset-x-0 top-0 h-28 opacity-70" />
 
@@ -89,7 +97,9 @@ function LoginPage() {
               </p>
 
               <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                {t("auth.welcome")}
+                {t(
+                  "auth.welcome",
+                )}
               </h1>
 
               <p className="mt-3 leading-6 text-slate-500 dark:text-slate-400">
@@ -108,8 +118,6 @@ function LoginPage() {
             </p>
           </div>
         </section>
-
-        {/* Visual side */}
 
         <section className="relative hidden overflow-hidden bg-linear-to-br from-orange-600 via-amber-500 to-teal-700 lg:flex lg:items-center lg:justify-center">
           <div className="moroccan-pattern absolute inset-0 opacity-50" />

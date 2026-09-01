@@ -976,7 +976,7 @@ const fr = {
 
       filters: {
         searchPlaceholder:
-          "Rechercher par référence, désignation ou catégorie...",
+          "Rechercher par référence, code-barres, marque ou désignation",
         lowStockOnly:
           "Stock faible uniquement",
       },
@@ -1090,7 +1090,7 @@ const fr = {
           "Sorties",
 
         searchPlaceholder:
-          "Rechercher par article, motif, référence, fournisseur ou utilisateur...",
+          "Rechercher par article, motif, référence, fournisseur ou utilisateur",
 
         allTypes:
           "Tous les mouvements",

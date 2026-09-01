@@ -41,26 +41,67 @@ import type {
   UserFilters as UserFiltersType,
 } from "../../types/user";
 
-function UsersPage() {
-  const { t } = useTranslation();
+type PendingAction =
+  | {
+      type: "delete";
+      user: User;
+    }
+  | {
+      type: "toggle";
+      user: User;
+    }
+  | null;
 
-  const [users, setUsers] =
+function UsersPage() {
+  const {
+    t,
+    i18n,
+  } =
+    useTranslation();
+
+  const isArabic =
+    i18n.language.startsWith(
+      "ar",
+    );
+
+  const tr = (
+    fr: string,
+    ar: string,
+  ) =>
+    isArabic
+      ? ar
+      : fr;
+
+  const [
+    users,
+    setUsers,
+  ] =
     useState<User[]>([]);
 
-  const [loading, setLoading] =
+  const [
+    loading,
+    setLoading,
+  ] =
     useState(true);
 
   const [
-    userToDelete,
-    setUserToDelete,
-  ] = useState<User | null>(
-    null,
-  );
+    pendingAction,
+    setPendingAction,
+  ] =
+    useState<PendingAction>(
+      null,
+    );
 
-  const [deleting, setDeleting] =
+  const [
+    actionLoading,
+    setActionLoading,
+  ] =
     useState(false);
 
-  const [toast, setToast] =
+  const [
+    toast,
+    setToast,
+  ] =
     useState<{
       open: boolean;
       message: string;
@@ -74,49 +115,62 @@ function UsersPage() {
       type: "success",
     });
 
-  const [filters, setFilters] =
+  const [
+    filters,
+    setFilters,
+  ] =
     useState<UserFiltersType>({
       search: "",
       role: "",
     });
 
-  const loadUsers = async () => {
-    try {
-      setLoading(true);
+  const loadUsers =
+    async () => {
+      try {
+        setLoading(
+          true,
+        );
 
-      const data =
-        await userService.getAll();
+        const data =
+          await userService.getAll();
 
-      setUsers(data);
-    } catch {
-      setToast({
-        open: true,
-        message: t(
-          "users.loadError",
-        ),
-        type: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+        setUsers(
+          data,
+        );
+      } catch {
+        setToast({
+          open: true,
+          message: t(
+            "users.loadError",
+          ),
+          type: "error",
+        });
+      } finally {
+        setLoading(
+          false,
+        );
+      }
+    };
 
   useEffect(() => {
     void loadUsers();
   }, []);
 
-  const roles = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          users.map(
-            (user) =>
-              user.role.name,
+  const roles =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            users.map(
+              (user) =>
+                user.role.name,
+            ),
           ),
         ),
-      ),
-    [users],
-  );
+      [
+        users,
+      ],
+    );
 
   const filteredUsers =
     useMemo(() => {
@@ -131,16 +185,24 @@ function UsersPage() {
             !search ||
             `${user.firstname} ${user.lastname}`
               .toLowerCase()
-              .includes(search) ||
+              .includes(
+                search,
+              ) ||
             `${user.firstnameAr} ${user.lastnameAr}`
               .toLowerCase()
-              .includes(search) ||
+              .includes(
+                search,
+              ) ||
             user.email
               .toLowerCase()
-              .includes(search) ||
+              .includes(
+                search,
+              ) ||
             user.cin
               .toLowerCase()
-              .includes(search);
+              .includes(
+                search,
+              );
 
           const matchesRole =
             !filters.role ||
@@ -153,66 +215,155 @@ function UsersPage() {
           );
         },
       );
-    }, [filters, users]);
+    }, [
+      filters,
+      users,
+    ]);
 
-  const requestDelete = (
-    user: User,
-  ) => {
-    setUserToDelete(user);
-  };
-
-  const handleDelete =
+  const handleConfirmedAction =
     async () => {
-      if (!userToDelete) {
+      if (
+        !pendingAction
+      ) {
         return;
       }
 
-      try {
-        setDeleting(true);
+      const {
+        user,
+      } =
+        pendingAction;
 
-        await userService.remove(
-          userToDelete.id,
+      try {
+        setActionLoading(
+          true,
         );
 
-        const deletedName =
-          `${userToDelete.firstname} ${userToDelete.lastname}`;
+        if (
+          pendingAction.type ===
+          "delete"
+        ) {
+          await userService.remove(
+            user.id,
+          );
 
-        setUserToDelete(null);
+          setToast({
+            open: true,
+            message: t(
+              "users.deleteSuccess",
+              {
+                name:
+                  `${user.firstname} ${user.lastname}`,
+              },
+            ),
+            type: "success",
+          });
+        } else {
+          const nextActive =
+            !user.active;
 
-        setToast({
-          open: true,
-          message: t(
-            "users.deleteSuccess",
-            {
-              name: deletedName,
-            },
-          ),
-          type: "success",
-        });
+          await userService.setActive(
+            user.id,
+            nextActive,
+          );
+
+          setToast({
+            open: true,
+            message:
+              nextActive
+                ? tr(
+                    "Utilisateur activé avec succès.",
+                    "تم تفعيل المستخدم بنجاح.",
+                  )
+                : tr(
+                    "Utilisateur désactivé avec succès.",
+                    "تم تعطيل المستخدم بنجاح.",
+                  ),
+            type: "success",
+          });
+        }
+
+        setPendingAction(
+          null,
+        );
 
         await loadUsers();
       } catch {
         setToast({
           open: true,
-          message: t(
-            "users.deleteError",
-          ),
+          message:
+            pendingAction.type ===
+            "delete"
+              ? t(
+                  "users.deleteError",
+                )
+              : tr(
+                  "Impossible de modifier le statut de l’utilisateur.",
+                  "تعذر تغيير حالة المستخدم.",
+                ),
           type: "error",
         });
       } finally {
-        setDeleting(false);
+        setActionLoading(
+          false,
+        );
       }
     };
+
+  const dialogTitle =
+    pendingAction?.type ===
+    "delete"
+      ? t(
+          "users.deleteTitle",
+        )
+      : pendingAction?.user.active
+        ? tr(
+            "Désactiver l’utilisateur",
+            "تعطيل المستخدم",
+          )
+        : tr(
+            "Activer l’utilisateur",
+            "تفعيل المستخدم",
+          );
+
+  const dialogMessage =
+    !pendingAction
+      ? ""
+      : pendingAction.type ===
+          "delete"
+        ? t(
+            "users.deleteMessage",
+            {
+              name:
+                `${pendingAction.user.firstname} ${pendingAction.user.lastname}`,
+            },
+          )
+        : pendingAction.user.active
+          ? tr(
+              `Désactiver ${pendingAction.user.firstname} ${pendingAction.user.lastname} ? Le compte restera enregistré mais l’accès sera bloqué.`,
+              `هل تريد تعطيل ${pendingAction.user.firstnameAr} ${pendingAction.user.lastnameAr}؟ سيبقى الحساب محفوظاً لكن سيتم منع الولوج.`,
+            )
+          : tr(
+              `Activer ${pendingAction.user.firstname} ${pendingAction.user.lastname} ?`,
+              `هل تريد تفعيل ${pendingAction.user.firstnameAr} ${pendingAction.user.lastnameAr}؟`,
+            );
 
   return (
     <section className="space-y-6">
       <Toast
-        open={toast.open}
-        message={toast.message}
-        type={toast.type}
+        open={
+          toast.open
+        }
+        message={
+          toast.message
+        }
+        type={
+          toast.type
+        }
         onClose={() =>
           setToast(
-            (previous) => ({
+            (
+              previous,
+            ) => ({
               ...previous,
               open: false,
             }),
@@ -222,30 +373,41 @@ function UsersPage() {
 
       <ConfirmDialog
         open={
-          userToDelete !== null
+          pendingAction !==
+          null
         }
-        title={t(
-          "users.deleteTitle",
-        )}
+        title={
+          dialogTitle
+        }
         message={
-          userToDelete
-            ? t(
-                "users.deleteMessage",
-                {
-                  name: `${userToDelete.firstname} ${userToDelete.lastname}`,
-                },
-              )
-            : ""
+          dialogMessage
         }
-        confirmLabel={t(
-          "users.delete",
-        )}
-        loading={deleting}
+        confirmLabel={
+          pendingAction?.type ===
+          "delete"
+            ? t(
+                "users.delete",
+              )
+            : pendingAction?.user.active
+              ? tr(
+                  "Désactiver",
+                  "تعطيل",
+                )
+              : tr(
+                  "Activer",
+                  "تفعيل",
+                )
+        }
+        loading={
+          actionLoading
+        }
         onConfirm={() => {
-          void handleDelete();
+          void handleConfirmedAction();
         }}
         onCancel={() =>
-          setUserToDelete(null)
+          setPendingAction(
+            null,
+          )
         }
       />
 
@@ -254,7 +416,9 @@ function UsersPage() {
           <h1 className="flex items-center gap-3 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
             <Users className="text-orange-600 dark:text-orange-400" />
 
-            {t("users.title")}
+            {t(
+              "users.title",
+            )}
           </h1>
 
           <p className="mt-2 text-slate-600 dark:text-slate-400">
@@ -270,38 +434,70 @@ function UsersPage() {
           }
         >
           <Link
-            to={ROUTES.ADD_USER}
+            to={
+              ROUTES.ADD_USER
+            }
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-orange-700"
           >
-            <Plus size={19} />
+            <Plus
+              size={19}
+            />
 
-            {t("users.add")}
+            {t(
+              "users.add",
+            )}
           </Link>
         </PermissionGuard>
       </div>
 
       <UserFilters
-        filters={filters}
-        roles={roles}
-        onChange={setFilters}
+        filters={
+          filters
+        }
+        roles={
+          roles
+        }
+        onChange={
+          setFilters
+        }
       />
 
       <div className="text-sm text-slate-500 dark:text-slate-400">
-        {t("users.count", {
-          count:
-            filteredUsers.length,
-        })}
+        {t(
+          "users.count",
+          {
+            count:
+              filteredUsers.length,
+          },
+        )}
       </div>
 
       {loading ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
-          {t("users.loading")}
+          {t(
+            "users.loading",
+          )}
         </div>
       ) : (
         <UserTable
-          users={filteredUsers}
-          onDelete={
-            requestDelete
+          users={
+            filteredUsers
+          }
+          onDelete={(
+            user,
+          ) =>
+            setPendingAction({
+              type: "delete",
+              user,
+            })
+          }
+          onToggleActive={(
+            user,
+          ) =>
+            setPendingAction({
+              type: "toggle",
+              user,
+            })
           }
         />
       )}

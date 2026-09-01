@@ -73,11 +73,8 @@ function ForgotPasswordForm({
       return;
     }
 
-    const emailRegex =
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
     if (
-      !emailRegex.test(
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
         cleanEmail,
       )
     ) {
@@ -98,11 +95,7 @@ function ForgotPasswordForm({
       );
 
       onSuccess();
-    } catch (caughtError) {
-      console.error(
-        caughtError,
-      );
-
+    } catch {
       setError(
         t(
           "auth.forgot.sendError",
@@ -141,6 +134,7 @@ function ForgotPasswordForm({
         noValidate
       >
         <Input
+          id="forgot-email"
           label={t(
             "auth.email",
           )}

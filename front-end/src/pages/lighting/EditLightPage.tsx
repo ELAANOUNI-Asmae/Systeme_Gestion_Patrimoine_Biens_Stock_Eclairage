@@ -1,295 +1,127 @@
 import { ArrowLeft } from "lucide-react";
-
-import {
-  useEffect,
-  useState,
-} from "react";
-
+import { useEffect, useState } from "react";
 import {
   Link,
   useNavigate,
   useParams,
 } from "react-router-dom";
-
-import {
-  useTranslation,
-} from "react-i18next";
+import { useTranslation } from "react-i18next";
 
 import LightForm from "../../components/lighting/LightForm";
-
-import {
-  ROUTES,
-} from "../../constants/routes";
-
-import {
-  lightingService,
-} from "../../services/lightingService";
-
+import { ROUTES } from "../../constants/routes";
+import { lightingService } from "../../services/lightingService";
 import type {
-  Light,
   LightFormData,
 } from "../../types/lighting";
 
 function EditLightPage() {
-  const { id } =
-    useParams();
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith("ar");
+  const tr = (fr: string, ar: string) => (isArabic ? ar : fr);
 
-  const navigate =
-    useNavigate();
-
-  const {
-    t,
-    i18n,
-  } = useTranslation();
-
-  const isArabic =
-    i18n.language.startsWith("ar");
-
-  const lightId =
-    Number(id);
-
-  const [
-    light,
-    setLight,
-  ] =
-    useState<
-      Light | null
-    >(null);
-
-  const [
-    loadingPage,
-    setLoadingPage,
-  ] = useState(true);
-
-  const [
-    saving,
-    setSaving,
-  ] = useState(false);
-
-  const [
-    error,
-    setError,
-  ] = useState("");
+  const lightId = Number(id);
+  const [initialValues, setInitialValues] =
+    useState<LightFormData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const loadLight =
-      async () => {
-        try {
-          if (
-            !Number.isFinite(
-              lightId,
-            )
-          ) {
-            throw new Error(
-              t(
-                "lighting.pages.invalidId",
-              ),
-            );
-          }
-
-          const data =
-            await lightingService.getLightById(
-              lightId,
-            );
-
-          setLight(
-            data,
-          );
-        } catch (
-          caughtError
-        ) {
-          setError(
-            caughtError instanceof Error
-              ? caughtError.message
-              : t(
-                  "lighting.pages.notFound",
-                ),
-          );
-        } finally {
-          setLoadingPage(
-            false,
-          );
-        }
-      };
-
-    void loadLight();
-  }, [
-    lightId,
-    t,
-  ]);
-
-  const handleSubmit =
-    async (
-      data: LightFormData,
-    ) => {
+    const load = async () => {
       try {
-        setSaving(true);
-        setError("");
+        if (!Number.isFinite(lightId)) {
+          throw new Error(tr("Identifiant invalide.", "معرّف غير صالح."));
+        }
 
-        await lightingService.updateLight(
-          lightId,
-          data,
-        );
+        const light = await lightingService.getLightById(lightId);
 
-        navigate(
-          ROUTES.LIGHTING,
-        );
-      } catch (
-        caughtError
-      ) {
+        setInitialValues({
+          reference: light.reference,
+          designation: light.designation,
+          designationAr: light.designationAr,
+          localisation: light.localisation,
+          latitude: light.latitude,
+          longitude: light.longitude,
+          status: light.status,
+          installationDate: light.installationDate,
+          power: light.power,
+          documents: [...light.documents],
+        });
+      } catch (caught) {
         setError(
-          caughtError instanceof Error
-            ? caughtError.message
-            : t(
-                "lighting.pages.genericError",
-              ),
+          caught instanceof Error
+            ? caught.message
+            : tr("Point lumineux introuvable.", "نقطة الإنارة غير موجودة."),
         );
       } finally {
-        setSaving(false);
+        setLoading(false);
       }
     };
 
-  if (loadingPage) {
+    void load();
+  }, [lightId]);
+
+  const submit = async (data: LightFormData) => {
+    try {
+      setSaving(true);
+      setError("");
+      await lightingService.updateLight(lightId, data);
+      navigate(ROUTES.LIGHTING);
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : tr("Une erreur est survenue.", "حدث خطأ."),
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
-        {t(
-          "lighting.pages.loading",
-        )}
+      <div className="p-8 text-center">
+        {tr("Chargement...", "جارٍ التحميل...")}
       </div>
     );
   }
 
-  if (!light) {
+  if (!initialValues) {
     return (
-      <section className="space-y-4">
-        <Link
-          to={
-            ROUTES.LIGHTING
-          }
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-orange-600 dark:text-slate-400 dark:hover:text-orange-400"
-        >
-          <ArrowLeft
-            size={18}
-            className={
-              isArabic
-                ? "rotate-180"
-                : ""
-            }
-          />
-
-          {t(
-            "lighting.pages.back",
-          )}
-        </Link>
-
-        <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
-          {error ||
-            t(
-              "lighting.pages.notFound",
-            )}
-        </div>
-      </section>
+      <div className="rounded-xl bg-red-50 p-4 text-red-700">
+        {error}
+      </div>
     );
   }
-
-  const initialValues:
-    LightFormData = {
-      reference:
-        light.reference,
-
-      designation:
-        light.designation,
-
-      designationAr:
-        light.designationAr,
-
-      zone:
-        light.zone,
-
-      zoneAr:
-        light.zoneAr,
-
-      address:
-        light.address,
-
-      addressAr:
-        light.addressAr,
-
-      latitude:
-        light.latitude,
-
-      longitude:
-        light.longitude,
-
-      status:
-        light.status,
-
-      installationDate:
-        light.installationDate,
-
-      power:
-        light.power,
-
-      documents: [
-        ...light.documents,
-      ],
-    };
 
   return (
     <section className="mx-auto max-w-5xl space-y-6">
       <div>
         <Link
-          to={
-            ROUTES.LIGHTING
-          }
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-orange-600 dark:text-slate-400 dark:hover:text-orange-400"
+          to={ROUTES.LIGHTING}
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-orange-600"
         >
-          <ArrowLeft
-            size={18}
-            className={
-              isArabic
-                ? "rotate-180"
-                : ""
-            }
-          />
-
-          {t(
-            "lighting.pages.back",
-          )}
+          <ArrowLeft size={18} className={isArabic ? "rotate-180" : ""} />
+          {tr("Retour à l’éclairage", "العودة إلى الإنارة")}
         </Link>
-
-        <h1 className="mt-4 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
-          {t(
-            "lighting.pages.editTitle",
-          )}
+        <h1 className="mt-4 text-3xl font-bold">
+          {tr("Modifier le point lumineux", "تعديل نقطة الإنارة")}
         </h1>
-
-        <p className="mt-2 text-slate-600 dark:text-slate-400">
-          {t(
-            "lighting.pages.editDescription",
-          )}
-        </p>
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
+        <div className="rounded-xl bg-red-50 px-4 py-3 text-red-700">
           {error}
         </div>
       )}
 
       <LightForm
-        initialValues={
-          initialValues
-        }
-        submitLabel={t(
-          "lighting.pages.save",
-        )}
-        loading={
-          saving
-        }
-        onSubmit={
-          handleSubmit
-        }
+        initialValues={initialValues}
+        submitLabel={tr("Enregistrer les modifications", "حفظ التعديلات")}
+        loading={saving}
+        onSubmit={submit}
       />
     </section>
   );

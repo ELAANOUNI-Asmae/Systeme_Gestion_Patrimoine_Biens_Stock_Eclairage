@@ -14,10 +14,10 @@ class SectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(.5)),
+        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: .5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.035),
+            color: Colors.black.withValues(alpha: .035),
             blurRadius: 16,
             offset: const Offset(0, 5),
           ),
@@ -51,7 +51,7 @@ class StatCard extends StatelessWidget {
           Container(
             width: 48,
             height: 48,
-            decoration: BoxDecoration(color: color.withOpacity(.12), borderRadius: BorderRadius.circular(14)),
+            decoration: BoxDecoration(color: color.withValues(alpha: .12), borderRadius: BorderRadius.circular(14)),
             child: Icon(icon, color: color),
           ),
           const SizedBox(width: 12),

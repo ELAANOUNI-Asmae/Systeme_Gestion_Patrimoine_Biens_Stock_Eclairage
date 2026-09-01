@@ -44,10 +44,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 14),
           Text(context.tr('Apparence', 'المظهر'), style: const TextStyle(fontWeight: FontWeight.w800)), const SizedBox(height: 8),
           SegmentedButton<ThemeMode>(segments: [ButtonSegment(value: ThemeMode.light, label: Text(context.tr('Clair', 'فاتح')), icon: const Icon(Icons.light_mode_outlined)), ButtonSegment(value: ThemeMode.dark, label: Text(context.tr('Sombre', 'داكن')), icon: const Icon(Icons.dark_mode_outlined))], selected: {state.themeMode == ThemeMode.dark ? ThemeMode.dark : ThemeMode.light}, onSelectionChanged: (v) => state.setThemeMode(v.first)),
-          const SizedBox(height: 8),
-          SwitchListTile.adaptive(contentPadding: EdgeInsets.zero, title: Text(context.tr('Notifications', 'الإشعارات')), subtitle: Text(context.tr('Inclut les rappels d’expiration des documents officiels.', 'تشمل تذكيرات انتهاء صلاحية الوثائق الرسمية.')), value: state.notificationsEnabled, onChanged: (v) => state.updateSettings(name: _name.text, city: _city.text, enabled: v)),
           const SizedBox(height: 12),
-          FilledButton.icon(onPressed: () { state.updateSettings(name: _name.text, city: _city.text, enabled: state.notificationsEnabled); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('Paramètres enregistrés.', 'تم حفظ الإعدادات.')))); }, icon: const Icon(Icons.save_outlined), label: Text(context.tr('Enregistrer', 'حفظ'))),
+          FilledButton.icon(onPressed: () { state.updateSettings(name: _name.text, city: _city.text); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('Paramètres enregistrés.', 'تم حفظ الإعدادات.')))); }, icon: const Icon(Icons.save_outlined), label: Text(context.tr('Enregistrer', 'حفظ'))),
         ])),
         const SizedBox(height: 12),
         SectionCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

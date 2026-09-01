@@ -700,15 +700,72 @@ const refreshAutomaticNotifications =
     );
   };
 
-export const notificationService = {
-  async getAll(): Promise<
-    AppNotification[]
-  > {
-    await refreshAutomaticNotifications();
+type StoredAuthUser = {
+  id: number;
+  role?: {
+    permissions?: string[];
+  };
+};
 
+const getStoredViewer = (): StoredAuthUser | null => {
+  try {
+    const raw = window.localStorage.getItem("user");
+
+    if (!raw) {
+      return null;
+    }
+
+    return JSON.parse(raw) as StoredAuthUser;
+  } catch {
+    return null;
+  }
+};
+
+const isVisibleToCurrentViewer = (
+  notification: AppNotification,
+) => {
+  const viewer = getStoredViewer();
+
+  if (
+    notification.recipientUserId === undefined &&
+    notification.recipientPermission === undefined
+  ) {
+    return true;
+  }
+
+  if (!viewer) {
+    return false;
+  }
+
+  if (
+    notification.recipientUserId !== undefined &&
+    notification.recipientUserId !== viewer.id
+  ) {
+    return false;
+  }
+
+  if (
+    notification.recipientPermission &&
+    !viewer.role?.permissions?.includes(
+      notification.recipientPermission,
+    )
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
+const visibleNotifications = () =>
+  notifications.filter(isVisibleToCurrentViewer);
+
+
+export const notificationService = {
+  async getAll(): Promise<AppNotification[]> {
+    await refreshAutomaticNotifications();
     await delay();
 
-    return notifications.map(
+    return visibleNotifications().map(
       (notification) => ({
         ...notification,
       }),
@@ -717,26 +774,58 @@ export const notificationService = {
 
   async getUnreadCount(): Promise<number> {
     await refreshAutomaticNotifications();
-
     await delay(50);
 
-    return notifications.filter(
-      (notification) =>
-        !notification.read,
+    return visibleNotifications().filter(
+      (notification) => !notification.read,
     ).length;
+  },
+
+  async createManual(
+    data: Omit<AppNotification, "id" | "createdAt" | "read"> & {
+      createdAt?: string;
+      read?: boolean;
+    },
+  ): Promise<AppNotification> {
+    await delay(50);
+
+    const nextId =
+      Math.max(
+        0,
+        ...notifications
+          .filter((item) => item.id > 0)
+          .map((item) => item.id),
+      ) + 1;
+
+    const notification: AppNotification = {
+      ...data,
+      id: nextId,
+      createdAt:
+        data.createdAt ?? new Date().toISOString(),
+      read: data.read ?? false,
+    };
+
+    notifications = [
+      notification,
+      ...notifications,
+    ];
+
+    notifyChange();
+
+    return {
+      ...notification,
+    };
   },
 
   async markAsRead(
     id: number,
   ): Promise<AppNotification> {
     await refreshAutomaticNotifications();
-
     await delay();
 
     const notification =
       notifications.find(
-        (item) =>
-          item.id === id,
+        (item) => item.id === id,
       );
 
     if (!notification) {
@@ -745,8 +834,7 @@ export const notificationService = {
       );
     }
 
-    notification.read =
-      true;
+    notification.read = true;
 
     notifyChange();
 
@@ -757,16 +845,23 @@ export const notificationService = {
 
   async markAllAsRead(): Promise<void> {
     await refreshAutomaticNotifications();
-
     await delay();
 
-    notifications =
-      notifications.map(
-        (notification) => ({
-          ...notification,
-          read: true,
-        }),
-      );
+    const visibleIds = new Set(
+      visibleNotifications().map(
+        (notification) => notification.id,
+      ),
+    );
+
+    notifications = notifications.map(
+      (notification) =>
+        visibleIds.has(notification.id)
+          ? {
+              ...notification,
+              read: true,
+            }
+          : notification,
+    );
 
     notifyChange();
   },
@@ -775,28 +870,19 @@ export const notificationService = {
     id: number,
   ): Promise<void> {
     await refreshAutomaticNotifications();
-
     await delay();
 
     if (
-      automaticNotificationIds.has(
-        id,
-      )
+      automaticNotificationIds.has(id)
     ) {
-      dismissedAutomaticNotificationIds.add(
-        id,
-      );
-
-      automaticNotificationIds.delete(
-        id,
-      );
+      dismissedAutomaticNotificationIds.add(id);
+      automaticNotificationIds.delete(id);
     }
 
-    notifications =
-      notifications.filter(
-        (notification) =>
-          notification.id !== id,
-      );
+    notifications = notifications.filter(
+      (notification) =>
+        notification.id !== id,
+    );
 
     notifyChange();
   },

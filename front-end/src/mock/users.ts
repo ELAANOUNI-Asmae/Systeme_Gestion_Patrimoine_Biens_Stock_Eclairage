@@ -70,6 +70,7 @@ export const mockUsers: User[] = [
     phone: "0612345678",
     cin: "AB123456",
     role: mockRoles[0],
+    active: true,
   },
   {
     id: 2,
@@ -82,6 +83,7 @@ export const mockUsers: User[] = [
     phone: "0623456789",
     cin: "CD234567",
     role: mockRoles[1],
+    active: true,
   },
   {
     id: 3,
@@ -94,6 +96,7 @@ export const mockUsers: User[] = [
     phone: "0634567890",
     cin: "EF345678",
     role: mockRoles[2],
+    active: false,
   },
   {
     id: 4,
@@ -106,5 +109,6 @@ export const mockUsers: User[] = [
     phone: "0645678901",
     cin: "GH456789",
     role: mockRoles[3],
+    active: true,
   },
 ];

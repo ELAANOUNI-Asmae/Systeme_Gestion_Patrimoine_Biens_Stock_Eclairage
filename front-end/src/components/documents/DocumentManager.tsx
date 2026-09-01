@@ -1,20 +1,17 @@
 import {
   FileText,
+  Paperclip,
   Plus,
   Trash2,
   Upload,
 } from "lucide-react";
-
 import {
-  useId,
   useRef,
   useState,
   type ChangeEvent,
+  type ReactNode,
 } from "react";
-
-import {
-  useTranslation,
-} from "react-i18next";
+import { useTranslation } from "react-i18next";
 
 import type {
   AppDocument,
@@ -22,15 +19,12 @@ import type {
   DocumentType,
 } from "../../types/document";
 
-type DocumentManagerProps = {
+type Props = {
   documents: AppDocument[];
-
-  onChange: (
-    documents: AppDocument[],
-  ) => void;
+  onChange: (documents: AppDocument[]) => void;
 };
 
-const documentTypes: DocumentType[] = [
+const types: DocumentType[] = [
   "INVOICE",
   "RECEIPT",
   "CONTRACT",
@@ -46,585 +40,256 @@ const documentTypes: DocumentType[] = [
   "OTHER",
 ];
 
-const reminderOptions = [
-  1,
-  3,
-  7,
-  15,
-  30,
-  60,
-  90,
-];
+const typeLabels: Record<DocumentType, { fr: string; ar: string }> = {
+  INVOICE: { fr: "Facture", ar: "فاتورة" },
+  RECEIPT: { fr: "Reçu", ar: "وصل" },
+  CONTRACT: { fr: "Contrat", ar: "عقد" },
+  REGISTRATION: { fr: "Immatriculation", ar: "التسجيل" },
+  INSURANCE: { fr: "Assurance", ar: "التأمين" },
+  CERTIFICATE: { fr: "Certificat", ar: "شهادة" },
+  DELIVERY_NOTE: { fr: "Bon de livraison", ar: "سند التسليم" },
+  EXIT_VOUCHER: { fr: "Bon de sortie", ar: "إذن الخروج" },
+  TECHNICAL_SHEET: { fr: "Fiche technique", ar: "ورقة تقنية" },
+  WARRANTY: { fr: "Garantie", ar: "ضمان" },
+  REPORT: { fr: "Rapport", ar: "تقرير" },
+  PHOTO: { fr: "Photo", ar: "صورة" },
+  OTHER: { fr: "Autre", ar: "أخرى" },
+};
 
-function DocumentManager({
-  documents,
-  onChange,
-}: DocumentManagerProps) {
-  const {
-    t,
-  } = useTranslation();
+function DocumentManager({ documents, onChange }: Props) {
+  const { i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith("ar");
+  const tr = (fr: string, ar: string) => (isArabic ? ar : fr);
 
-  const fileInputId =
-    useId();
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [name, setName] = useState("");
+  const [category, setCategory] =
+    useState<DocumentCategory>("ATTACHMENT");
+  const [type, setType] = useState<DocumentType>("OTHER");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [expirationDate, setExpirationDate] = useState("");
+  const [reminderDaysBefore, setReminderDaysBefore] = useState(7);
+  const [error, setError] = useState("");
 
-  const fileInputRef =
-    useRef<HTMLInputElement | null>(
-      null,
-    );
-
-  const [
-    name,
-    setName,
-  ] = useState("");
-
-  const [
-    category,
-    setCategory,
-  ] =
-    useState<DocumentCategory>(
-      "ATTACHMENT",
-    );
-
-  const [
-    type,
-    setType,
-  ] =
-    useState<DocumentType>(
-      "OTHER",
-    );
-
-  const [
-    fileName,
-    setFileName,
-  ] = useState("");
-
-  const [
-    expirationDate,
-    setExpirationDate,
-  ] = useState("");
-
-  const [
-    reminderDaysBefore,
-    setReminderDaysBefore,
-  ] = useState(7);
-
-  const inputClassName =
-    "mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100";
-
-  const resetForm = () => {
-    setName("");
-
-    setCategory(
-      "ATTACHMENT",
-    );
-
-    setType(
-      "OTHER",
-    );
-
-    setFileName("");
-
-    setExpirationDate("");
-
-    setReminderDaysBefore(
-      7,
-    );
-
-    if (
-      fileInputRef.current
-    ) {
-      fileInputRef.current.value =
-        "";
-    }
+  const fileChanged = (event: ChangeEvent<HTMLInputElement>) => {
+    setSelectedFile(event.target.files?.[0] ?? null);
+    setError("");
   };
 
-  const handleCategoryChange = (
-    event: ChangeEvent<HTMLSelectElement>,
-  ) => {
-    const newCategory =
-      event.target
-        .value as DocumentCategory;
-
-    setCategory(
-      newCategory,
-    );
-
-    if (
-      newCategory ===
-      "ATTACHMENT"
-    ) {
-      setExpirationDate("");
-
-      setReminderDaysBefore(
-        7,
+  const add = () => {
+    if (!name.trim() || !selectedFile) {
+      setError(
+        tr(
+          "Le nom et le fichier sont obligatoires.",
+          "اسم الوثيقة والملف إلزاميان.",
+        ),
       );
-    }
-  };
-
-  const handleFileChange = (
-    event: ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file =
-      event.target.files?.[0];
-
-    setFileName(
-      file?.name ?? "",
-    );
-  };
-
-  const addDocument = () => {
-    if (
-      !name.trim() ||
-      !fileName
-    ) {
       return;
     }
 
-    if (
-      category ===
-        "OFFICIAL" &&
-      !expirationDate
-    ) {
+    if (category === "OFFICIAL" && !expirationDate) {
+      setError(
+        tr(
+          "La date d’expiration est obligatoire pour un document officiel.",
+          "تاريخ انتهاء الصلاحية إلزامي للوثيقة الرسمية.",
+        ),
+      );
       return;
     }
 
-    const document: AppDocument =
-      {
-        id: Date.now(),
+    const document: AppDocument = {
+      id: Math.max(0, ...documents.map((item) => item.id)) + 1,
+      name: name.trim(),
+      category,
+      type,
+      fileName: selectedFile.name,
+      uploadDate: new Date().toISOString().slice(0, 10),
+      expirationDate:
+        category === "OFFICIAL" ? expirationDate : undefined,
+      reminderDaysBefore:
+        category === "OFFICIAL" ? reminderDaysBefore : undefined,
+      file: selectedFile,
+    };
 
-        name:
-          name.trim(),
+    onChange([...documents, document]);
+    setName("");
+    setCategory("ATTACHMENT");
+    setType("OTHER");
+    setSelectedFile(null);
+    setExpirationDate("");
+    setReminderDaysBefore(7);
+    setError("");
 
-        category,
-
-        type,
-
-        fileName,
-
-        uploadDate:
-          new Date()
-            .toISOString()
-            .slice(
-              0,
-              10,
-            ),
-
-        ...(category ===
-        "OFFICIAL"
-          ? {
-              expirationDate,
-
-              reminderDaysBefore,
-            }
-          : {}),
-      };
-
-    onChange([
-      ...documents,
-      document,
-    ]);
-
-    resetForm();
-  };
-
-  const removeDocument = (
-    id: number,
-  ) => {
-    onChange(
-      documents.filter(
-        (document) =>
-          document.id !==
-          id,
-      ),
-    );
+    if (inputRef.current) inputRef.current.value = "";
   };
 
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:p-6">
-      <div className="flex items-center gap-3">
-        <FileText className="text-orange-600 dark:text-orange-400" />
-
-        <div>
-          <h2 className="font-bold text-slate-900 dark:text-white">
-            {t(
-              "documents.title",
-            )}
-          </h2>
-
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {t(
-              "documents.description",
-            )}
-          </p>
-        </div>
+    <section className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-900/50">
+      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200">
+        <p className="font-bold">
+          {tr("Document officiel ou pièce jointe ?", "وثيقة رسمية أم مرفق؟")}
+        </p>
+        <p className="mt-1">
+          {tr(
+            "Document officiel : fichier avec date d’expiration et rappel. Pièce jointe : fichier simple sans échéance.",
+            "الوثيقة الرسمية: ملف له تاريخ انتهاء وتذكير. المرفق: ملف عادي بدون تاريخ انتهاء.",
+          )}
+        </p>
       </div>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-2">
-        {/* CATEGORY */}
-
-        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-          {t(
-            "documents.category",
-          )}{" "}
-          *
-
-          <select
-            value={
-              category
-            }
-            onChange={
-              handleCategoryChange
-            }
-            className={
-              inputClassName
-            }
-          >
-            <option value="ATTACHMENT">
-              {t(
-                "documents.attachment",
-              )}
-            </option>
-
-            <option value="OFFICIAL">
-              {t(
-                "documents.official",
-              )}
-            </option>
-          </select>
-        </label>
-
-        {/* NAME */}
-
-        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-          {t(
-            "documents.name",
-          )}{" "}
-          *
-
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <Field label={tr("Nom du document", "اسم الوثيقة")}>
           <input
-            type="text"
             value={name}
-            onChange={(
-              event,
-            ) =>
-              setName(
-                event.target
-                  .value,
-              )
-            }
-            className={
-              inputClassName
-            }
+            onChange={(event) => setName(event.target.value)}
+            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 dark:border-slate-600 dark:bg-slate-900"
           />
-        </label>
+        </Field>
 
-        {/* TYPE */}
+        <Field label={tr("Catégorie", "الفئة")}>
+          <select
+            value={category}
+            onChange={(event) =>
+              setCategory(event.target.value as DocumentCategory)
+            }
+            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 dark:border-slate-600 dark:bg-slate-900"
+          >
+            <option value="ATTACHMENT">{tr("Pièce jointe", "مرفق")}</option>
+            <option value="OFFICIAL">{tr("Document officiel", "وثيقة رسمية")}</option>
+          </select>
+        </Field>
 
-        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-          {t(
-            "documents.type",
-          )}
-
+        <Field label={tr("Type", "النوع")}>
           <select
             value={type}
-            onChange={(
-              event,
-            ) =>
-              setType(
-                event.target
-                  .value as DocumentType,
-              )
+            onChange={(event) =>
+              setType(event.target.value as DocumentType)
             }
-            className={
-              inputClassName
-            }
+            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 dark:border-slate-600 dark:bg-slate-900"
           >
-            {documentTypes.map(
-              (
-                item,
-              ) => (
-                <option
-                  key={
-                    item
-                  }
-                  value={
-                    item
-                  }
-                >
-                  {t(
-                    `documents.types.${item}`,
-                  )}
-                </option>
-              ),
-            )}
+            {types.map((item) => (
+              <option key={item} value={item}>
+                {tr(typeLabels[item].fr, typeLabels[item].ar)}
+              </option>
+            ))}
           </select>
-        </label>
-
-        {/* FILE */}
+        </Field>
 
         <div>
-          <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            {t(
-              "documents.file",
-            )}{" "}
-            *
-          </p>
-
+          <p className="mb-1 text-sm font-medium">{tr("Fichier", "الملف")}</p>
           <input
-            ref={
-              fileInputRef
-            }
-            id={
-              fileInputId
-            }
+            ref={inputRef}
             type="file"
-            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-            onChange={
-              handleFileChange
-            }
-            className="sr-only"
+            className="hidden"
+            onChange={fileChanged}
           />
-
-          <div className="mt-1 flex min-h-11 items-center gap-3 rounded-xl border border-slate-300 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-900">
-            <label
-              htmlFor={
-                fileInputId
-              }
-              className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
-            >
-              <Upload
-                size={16}
-              />
-
-              {t(
-                "documents.chooseFile",
-              )}
-            </label>
-
-            <span className="min-w-0 truncate text-sm text-slate-500 dark:text-slate-400">
-              {fileName ||
-                t(
-                  "documents.noFileSelected",
-                )}
-            </span>
-          </div>
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 dark:border-slate-600 dark:bg-slate-900"
+          >
+            <Upload size={18} />
+            {selectedFile ? selectedFile.name : tr("Choisir un fichier", "اختيار ملف")}
+          </button>
         </div>
 
-        {/* OFFICIAL DOCUMENT */}
-
-        {category ===
-          "OFFICIAL" && (
+        {category === "OFFICIAL" && (
           <>
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              {t(
-                "documents.expirationDate",
-              )}{" "}
-              *
-
+            <Field label={tr("Date d’expiration", "تاريخ انتهاء الصلاحية")}>
               <input
                 type="date"
-                value={
-                  expirationDate
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setExpirationDate(
-                    event.target
-                      .value,
-                  )
-                }
-                className={
-                  inputClassName
-                }
+                value={expirationDate}
+                onChange={(event) => setExpirationDate(event.target.value)}
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 dark:border-slate-600 dark:bg-slate-900"
               />
-            </label>
+            </Field>
 
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              {t(
-                "documents.remindBeforeExpiration",
-              )}
-
+            <Field label={tr("Notifier avant expiration", "التذكير قبل الانتهاء")}>
               <select
-                value={
-                  reminderDaysBefore
+                value={reminderDaysBefore}
+                onChange={(event) =>
+                  setReminderDaysBefore(Number(event.target.value))
                 }
-                onChange={(
-                  event,
-                ) =>
-                  setReminderDaysBefore(
-                    Number(
-                      event
-                        .target
-                        .value,
-                    ),
-                  )
-                }
-                className={
-                  inputClassName
-                }
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 dark:border-slate-600 dark:bg-slate-900"
               >
-                {reminderOptions.map(
-                  (
-                    days,
-                  ) => (
-                    <option
-                      key={
-                        days
-                      }
-                      value={
-                        days
-                      }
-                    >
-                      {t(
-                        "documents.daysBefore",
-                        {
-                          count:
-                            days,
-                        },
-                      )}
-                    </option>
-                  ),
-                )}
+                {[1, 3, 7, 15, 30, 60, 90].map((days) => (
+                  <option key={days} value={days}>
+                    {tr(`${days} jour(s) avant`, `قبل ${days} يوم`)}
+                  </option>
+                ))}
               </select>
-            </label>
+            </Field>
           </>
         )}
       </div>
 
-      {/* ADD */}
+      {error && (
+        <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      )}
 
-      <div className="mt-5 flex justify-end rtl:justify-start">
+      <div className="mt-4 flex justify-end">
         <button
           type="button"
-          onClick={
-            addDocument
-          }
-          disabled={
-            !name.trim() ||
-            !fileName ||
-            (category ===
-              "OFFICIAL" &&
-              !expirationDate)
-          }
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-40 dark:bg-orange-600 dark:hover:bg-orange-700"
+          onClick={add}
+          className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white dark:bg-orange-600"
         >
-          <Plus
-            size={17}
-          />
-
-          {t(
-            "documents.add",
-          )}
+          <Plus size={18} />
+          {tr("Ajouter le document", "إضافة الوثيقة")}
         </button>
       </div>
 
-      {/* DOCUMENT LIST */}
-
-      <div className="mt-6 space-y-3">
-        {documents.length ===
-        0 ? (
-          <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500 dark:bg-slate-900 dark:text-slate-400">
-            {t(
-              "documents.empty",
-            )}
-          </p>
-        ) : (
-          documents.map(
-            (
-              document,
-            ) => (
-              <div
-                key={
-                  document.id
-                }
-                className="flex flex-col justify-between gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700 sm:flex-row sm:items-center"
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold text-slate-800 dark:text-slate-100">
-                      {
-                        document.name
-                      }
-                    </p>
-
-                    <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                      {document.category ===
-                      "OFFICIAL"
-                        ? t(
-                            "documents.official",
-                          )
-                        : t(
-                            "documents.attachment",
-                          )}
-                    </span>
-                  </div>
-
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    {t(
-                      `documents.types.${document.type}`,
-                    )}
-
-                    {" · "}
-
-                    {
-                      document.fileName
-                    }
-                  </p>
-
-                  {document.category ===
-                    "OFFICIAL" &&
-                    document.expirationDate && (
-                      <p className="mt-1 text-xs font-medium text-orange-600 dark:text-orange-400">
-                        {t(
-                          "documents.expiresOn",
-                          {
-                            date:
-                              document.expirationDate,
-                          },
-                        )}
-
-                        {document.reminderDaysBefore !==
-                          undefined && (
-                          <>
-                            {" · "}
-
-                            {t(
-                              "documents.reminderText",
-                              {
-                                count:
-                                  document.reminderDaysBefore,
-                              },
-                            )}
-                          </>
-                        )}
-                      </p>
-                    )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    removeDocument(
-                      document.id,
-                    )
-                  }
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-red-600 transition hover:text-red-700"
-                >
-                  <Trash2
-                    size={16}
-                  />
-
-                  {t(
-                    "documents.delete",
-                  )}
-                </button>
+      {documents.length > 0 && (
+        <div className="mt-5 space-y-2">
+          {documents.map((document) => (
+            <div
+              key={document.id}
+              className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
+            >
+              {document.category === "OFFICIAL" ? (
+                <FileText size={18} />
+              ) : (
+                <Paperclip size={18} />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold">{document.name}</p>
+                <p className="truncate text-xs text-slate-500">
+                  {document.fileName}
+                  {document.expirationDate
+                    ? ` · ${tr("Expire le", "ينتهي في")} ${document.expirationDate}`
+                    : ""}
+                </p>
               </div>
-            ),
-          )
-        )}
-      </div>
-    </article>
+              <button
+                type="button"
+                onClick={() =>
+                  onChange(documents.filter((item) => item.id !== document.id))
+                }
+                className="rounded-lg p-2 text-red-600"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+      <span className="mb-1 block">{label}</span>
+      {children}
+    </label>
   );
 }
 

@@ -1,275 +1,92 @@
-import {
-  Archive,
-  ArrowLeft,
-  Eye,
-  Search,
-} from "lucide-react";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { Archive, ArrowLeft, Eye, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
-import {
-  Link,
-} from "react-router-dom";
-
-import {
-  useTranslation,
-} from "react-i18next";
-
-import {
-  ROUTES,
-} from "../../constants/routes";
-
-import {
-  bienService,
-} from "../../services/bienService";
-
-import type {
-  ArchiveReason,
-  Bien,
-} from "../../types/bien";
-
-const archiveReasons: ArchiveReason[] = [
-  "SOLD",
-  "DISPOSED",
-  "DESTROYED",
-  "TRANSFERRED",
-  "REFORMED",
-  "OTHER",
-];
+import { ROUTES } from "../../constants/routes";
+import { bienService } from "../../services/bienService";
+import type { Bien } from "../../types/bien";
 
 function BiensArchivePage() {
-  const {
-    t,
-    i18n,
-  } = useTranslation();
+  const { i18n } = useTranslation();
+  const ar = i18n.language.startsWith("ar");
+  const tr = (fr: string, arText: string) => (ar ? arText : fr);
 
-  const isArabic =
-    i18n.language.startsWith("ar");
-
-  const [
-    biens,
-    setBiens,
-  ] = useState<Bien[]>([]);
-
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
-
-  const [
-    search,
-    setSearch,
-  ] = useState("");
-
-  const [
-    reason,
-    setReason,
-  ] = useState<
-    ArchiveReason | ""
-  >("");
+  const [biens, setBiens] = useState<Bien[]>([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadArchivedBiens =
-      async () => {
-        try {
-          setLoading(true);
-
-          const data =
-            await bienService.getArchived();
-
-          setBiens(data);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-    void loadArchivedBiens();
+    const load = async () => {
+      try {
+        setBiens(await bienService.getArchived());
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
   }, []);
 
-  const filteredBiens =
-    useMemo(() => {
-      const normalizedSearch =
-        search
-          .trim()
-          .toLowerCase();
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
 
-      return biens.filter(
-        (bien) => {
-          const matchesSearch =
-            !normalizedSearch ||
-            bien.designation
-              .toLowerCase()
-              .includes(
-                normalizedSearch,
-              ) ||
-            bien.designationAr
-              .toLowerCase()
-              .includes(
-                normalizedSearch,
-              ) ||
-            bien.inventoryId
-              .toLowerCase()
-              .includes(
-                normalizedSearch,
-              );
-
-          const matchesReason =
-            !reason ||
-            bien.archive.reason ===
-              reason;
-
-          return (
-            matchesSearch &&
-            matchesReason
-          );
-        },
-      );
-    }, [
-      biens,
-      search,
-      reason,
-    ]);
+    return biens.filter(
+      (bien) =>
+        !q ||
+        bien.designation.toLowerCase().includes(q) ||
+        bien.designationAr.toLowerCase().includes(q) ||
+        bien.inventoryId.toLowerCase().includes(q),
+    );
+  }, [biens, search]);
 
   return (
     <section className="space-y-6">
-      {/* HEADER */}
+      <Link
+        to={ROUTES.BIENS}
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-orange-600 dark:text-slate-400"
+      >
+        <ArrowLeft size={18} className="rtl:rotate-180" />
+        {tr("Retour aux biens", "العودة إلى الممتلكات")}
+      </Link>
 
       <div>
-        <Link
-          to={ROUTES.BIENS}
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-orange-600 dark:text-slate-400 dark:hover:text-orange-400"
-        >
-          <ArrowLeft
-            size={18}
-            className="rtl:rotate-180"
-          />
-
-          {t(
-            "biens.archive.back",
+        <h1 className="flex items-center gap-3 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
+          <Archive className="text-orange-600" />
+          {tr("Archive des biens cédés", "أرشيف الممتلكات المفوّتة")}
+        </h1>
+        <p className="mt-2 text-slate-600 dark:text-slate-400">
+          {tr(
+            "Cette page contient uniquement les biens cédés.",
+            "تحتوي هذه الصفحة فقط على الممتلكات المفوّتة.",
           )}
-        </Link>
-
-        <div className="mt-4 flex items-start gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300">
-            <Archive
-              size={23}
-            />
-          </div>
-
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
-              {t(
-                "biens.archive.title",
-              )}
-            </h1>
-
-            <p className="mt-2 text-slate-600 dark:text-slate-400">
-              {t(
-                "biens.archive.description",
-              )}
-            </p>
-          </div>
-        </div>
+        </p>
       </div>
 
-      {/* FILTERS */}
-
-      <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800 md:grid-cols-[1fr_260px]">
-        <div className="relative">
-          <Search
-            size={19}
-            className="pointer-events-none absolute inset-s-3 top-1/2 -translate-y-1/2 text-slate-400"
-          />
-
-          <input
-            type="search"
-            value={search}
-            onChange={(event) =>
-              setSearch(
-                event.target.value,
-              )
-            }
-            placeholder={t(
-              "biens.archive.searchPlaceholder",
-            )}
-            className="h-11 w-full rounded-xl border border-slate-300 bg-white ps-10 pe-4 text-sm text-slate-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-          />
-        </div>
-
-        <select
-          value={reason}
-          onChange={(event) =>
-            setReason(
-              event.target
-                .value as
-                | ArchiveReason
-                | "",
-            )
-          }
-          className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-        >
-          <option value="">
-            {t(
-              "biens.archive.allReasons",
-            )}
-          </option>
-
-          {archiveReasons.map(
-            (item) => (
-              <option
-                key={item}
-                value={item}
-              >
-                {t(
-                  `biens.archive.reasons.${item}`,
-                )}
-              </option>
-            ),
+      <div className="relative rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <Search
+          size={19}
+          className="pointer-events-none absolute inset-s-7 top-1/2 -translate-y-1/2 text-slate-400"
+        />
+        <input
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder={tr(
+            "Rechercher par désignation ou inventaire",
+            "البحث بالتسمية أو رقم الجرد",
           )}
-        </select>
+          className="h-11 w-full rounded-xl border border-slate-300 bg-white ps-10 pe-4 text-sm outline-none focus:border-orange-500 dark:border-slate-600 dark:bg-slate-900"
+        />
       </div>
-
-      <p className="text-sm text-slate-500 dark:text-slate-400">
-        {t(
-          "biens.archive.count",
-          {
-            count:
-              filteredBiens.length,
-          },
-        )}
-      </p>
-
-      {/* CONTENT */}
 
       {loading ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
-          {t(
-            "biens.archive.loading",
-          )}
+        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center dark:border-slate-700 dark:bg-slate-800">
+          {tr("Chargement", "جارٍ التحميل")}
         </div>
-      ) : filteredBiens.length ===
-        0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <Archive
-            size={38}
-            className="mx-auto text-slate-300 dark:text-slate-600"
-          />
-
-          <p className="mt-4 font-semibold text-slate-700 dark:text-slate-200">
-            {t(
-              "biens.archive.empty",
-            )}
-          </p>
-
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {t(
-              "biens.archive.emptyDescription",
-            )}
-          </p>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center dark:border-slate-700 dark:bg-slate-800">
+          {tr("Aucun bien cédé", "لا توجد ممتلكات مفوّتة")}
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
@@ -278,125 +95,49 @@ function BiensArchivePage() {
               <thead className="bg-slate-50 dark:bg-slate-900">
                 <tr>
                   <th className="px-5 py-4 text-start text-xs font-semibold uppercase text-slate-500">
-                    {t(
-                      "biens.archive.columns.bien",
-                    )}
+                    {tr("Bien", "الممتلك")}
                   </th>
-
                   <th className="px-5 py-4 text-start text-xs font-semibold uppercase text-slate-500">
-                    {t(
-                      "biens.archive.columns.type",
-                    )}
+                    {tr("Date de cession", "تاريخ التفويت")}
                   </th>
-
                   <th className="px-5 py-4 text-start text-xs font-semibold uppercase text-slate-500">
-                    {t(
-                      "biens.archive.columns.exitDate",
-                    )}
+                    {tr("Statut", "الحالة")}
                   </th>
-
-                  <th className="px-5 py-4 text-start text-xs font-semibold uppercase text-slate-500">
-                    {t(
-                      "biens.archive.columns.reason",
-                    )}
-                  </th>
-
-                  <th className="px-5 py-4 text-start text-xs font-semibold uppercase text-slate-500">
-                    {t(
-                      "biens.archive.columns.value",
-                    )}
-                  </th>
-
                   <th className="px-5 py-4 text-end text-xs font-semibold uppercase text-slate-500">
-                    {t(
-                      "biens.archive.columns.actions",
-                    )}
+                    {tr("Action", "الإجراء")}
                   </th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                {filteredBiens.map(
-                  (bien) => {
-                    const designation =
-                      isArabic
-                        ? bien.designationAr
-                        : bien.designation;
-
-                    const archiveReason =
-                      bien.archive
-                        .reason ??
-                      "OTHER";
-
-                    return (
-                      <tr
-                        key={
-                          bien.id
-                        }
-                        className="transition hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                {filtered.map((bien) => (
+                  <tr key={bien.id}>
+                    <td className="px-5 py-4">
+                      <p className="font-semibold">
+                        {ar ? bien.designationAr : bien.designation}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {bien.inventoryId}
+                      </p>
+                    </td>
+                    <td className="px-5 py-4 text-sm">
+                      {bien.archive.archivedAt ?? "—"}
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700 dark:bg-orange-500/15 dark:text-orange-300">
+                        {tr("Cédé", "مفوّت")}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-end">
+                      <Link
+                        to={`/biens/${bien.id}`}
+                        className="inline-flex rounded-lg p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/10"
                       >
-                        <td className="px-5 py-4">
-                          <p className="font-semibold text-slate-800 dark:text-slate-100">
-                            {
-                              designation
-                            }
-                          </p>
-
-                          <p className="mt-1 text-xs text-slate-500">
-                            {
-                              bien.inventoryId
-                            }
-                          </p>
-                        </td>
-
-                        <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
-                          {t(
-                            `biens.types.${bien.type}`,
-                          )}
-                        </td>
-
-                        <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
-                          {bien.archive
-                            .archivedAt ??
-                            "—"}
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200">
-                            {t(
-                              `biens.archive.reasons.${archiveReason}`,
-                            )}
-                          </span>
-                        </td>
-
-                        <td className="whitespace-nowrap px-5 py-4 text-sm font-medium text-slate-700 dark:text-slate-200">
-                          {bien.purchaseValue.toLocaleString(
-                            isArabic
-                              ? "ar-MA"
-                              : "fr-MA",
-                          )}{" "}
-                          DH
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <div className="flex justify-end rtl:justify-start">
-                            <Link
-                              to={`/biens/${bien.id}`}
-                              title={t(
-                                "biens.view",
-                              )}
-                              className="rounded-lg p-2 text-slate-500 transition hover:bg-blue-50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
-                            >
-                              <Eye
-                                size={18}
-                              />
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  },
-                )}
+                        <Eye size={18} />
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

@@ -37,21 +37,34 @@ import type {
 } from "../../types/user";
 
 function UserDetailsPage() {
-  const { id } =
+  const {
+    id,
+  } =
     useParams();
 
-  const { t } =
+  const {
+    t,
+  } =
     useTranslation();
 
-  const [user, setUser] =
+  const [
+    user,
+    setUser,
+  ] =
     useState<User | null>(
       null,
     );
 
-  const [loading, setLoading] =
+  const [
+    loading,
+    setLoading,
+  ] =
     useState(true);
 
-  const [error, setError] =
+  const [
+    error,
+    setError,
+  ] =
     useState("");
 
   useEffect(() => {
@@ -60,10 +73,14 @@ function UserDetailsPage() {
         try {
           const data =
             await userService.getById(
-              Number(id),
+              Number(
+                id,
+              ),
             );
 
-          setUser(data);
+          setUser(
+            data,
+          );
         } catch {
           setError(
             t(
@@ -71,14 +88,21 @@ function UserDetailsPage() {
             ),
           );
         } finally {
-          setLoading(false);
+          setLoading(
+            false,
+          );
         }
       };
 
     void loadUser();
-  }, [id, t]);
+  }, [
+    id,
+    t,
+  ]);
 
-  if (loading) {
+  if (
+    loading
+  ) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
         {t(
@@ -100,7 +124,9 @@ function UserDetailsPage() {
     <section className="mx-auto max-w-4xl space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <Link
-          to={ROUTES.USERS}
+          to={
+            ROUTES.USERS
+          }
           className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-orange-600 dark:text-slate-400 dark:hover:text-orange-400"
         >
           <ArrowLeft
@@ -108,7 +134,9 @@ function UserDetailsPage() {
             className="rtl:rotate-180"
           />
 
-          {t("users.pages.back")}
+          {t(
+            "users.pages.back",
+          )}
         </Link>
 
         <PermissionGuard
@@ -120,14 +148,22 @@ function UserDetailsPage() {
             to={`/utilisateurs/${user.id}/modifier`}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-700"
           >
-            <Pencil size={18} />
+            <Pencil
+              size={18}
+            />
 
-            {t("users.modify")}
+            {t(
+              "users.modify",
+            )}
           </Link>
         </PermissionGuard>
       </div>
 
-      <UserCard user={user} />
+      <UserCard
+        user={
+          user
+        }
+      />
     </section>
   );
 }

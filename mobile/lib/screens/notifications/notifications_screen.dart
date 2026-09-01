@@ -53,7 +53,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 padding: const EdgeInsets.only(bottom: 10),
                 child: SectionCard(
                   child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    CircleAvatar(backgroundColor: _color(n.kind).withOpacity(.13), child: Icon(_icon(n.kind), color: _color(n.kind))),
+                    CircleAvatar(backgroundColor: _color(n.kind).withValues(alpha: .13), child: Icon(_icon(n.kind), color: _color(n.kind))),
                     const SizedBox(width: 12),
                     Expanded(
                       child: InkWell(

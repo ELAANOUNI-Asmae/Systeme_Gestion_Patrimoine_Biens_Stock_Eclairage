@@ -1,163 +1,132 @@
-import {
-  initialMockBiens,
-} from "../mock/biens";
+
+import { initialMockBiens } from "../mock/biens";
 
 import type {
+  ArchiveReason,
   Bien,
   BienFormData,
   RentalOperation,
   SaleOperation,
-  ArchiveReason,
 } from "../types/bien";
 
-import type {
-  AppDocument,
-} from "../types/document";
+import type { AppDocument } from "../types/document";
 
-let biens: Bien[] = [
-  ...initialMockBiens,
-];
+let biens: Bien[] = initialMockBiens.map(cloneBien);
 
-const delay = (
-  milliseconds = 250,
-) =>
-  new Promise((resolve) =>
-    setTimeout(
-      resolve,
-      milliseconds,
-    ),
-  );
+const delay = (milliseconds = 250) =>
+  new Promise<void>((resolve) => {
+    window.setTimeout(resolve, milliseconds);
+  });
+
+function cloneBien(bien: Bien): Bien {
+  return {
+    ...bien,
+    documents: bien.documents.map((document) => ({ ...document })),
+    vehicleDetails: bien.vehicleDetails ? { ...bien.vehicleDetails } : undefined,
+    machineDetails: bien.machineDetails ? { ...bien.machineDetails } : undefined,
+    realEstateDetails: bien.realEstateDetails ? { ...bien.realEstateDetails } : undefined,
+    rentalHistory: bien.rentalHistory.map((rental) => ({ ...rental })),
+    sale: bien.sale ? { ...bien.sale } : undefined,
+    archive: { ...bien.archive },
+  };
+}
+
+function normalizeAssignment(
+  status: BienFormData["assetStatus"],
+  assignment: string,
+  assignmentAr: string,
+) {
+  if (status !== "IN_USE") {
+    return {
+      assignment: "",
+      assignmentAr: "",
+    };
+  }
+
+  return {
+    assignment: assignment.trim(),
+    assignmentAr: assignmentAr.trim(),
+  };
+}
 
 export const bienService = {
-  async getAll(): Promise<
-    Bien[]
-  > {
+  async getAll(): Promise<Bien[]> {
+    await delay();
+
+    return biens
+      .filter((bien) => !bien.archive.archived)
+      .map(cloneBien);
+  },
+
+  async getArchived(): Promise<Bien[]> {
     await delay();
 
     return biens
       .filter(
         (bien) =>
-          !bien.archive
-            .archived,
+          bien.archive.archived &&
+          bien.archive.reason === "DISPOSED",
       )
-      .map((bien) => ({
-        ...bien,
-        documents: [
-          ...bien.documents,
-        ],
-        rentalHistory: [
-          ...bien.rentalHistory,
-        ],
-      }));
+      .map(cloneBien);
   },
 
-  async getArchived(): Promise<
-    Bien[]
-  > {
+  async getById(id: number): Promise<Bien> {
     await delay();
 
-    return biens
-      .filter(
-        (bien) =>
-          bien.archive
-            .archived,
-      )
-      .map((bien) => ({
-        ...bien,
-
-        documents: [
-          ...bien.documents,
-        ],
-
-        rentalHistory: [
-          ...bien.rentalHistory,
-        ],
-      }));
-  },
-
-  async getById(
-    id: number,
-  ): Promise<Bien> {
-    await delay();
-
-    const bien =
-      biens.find(
-        (item) =>
-          item.id === id,
-      );
+    const bien = biens.find((item) => item.id === id);
 
     if (!bien) {
-      throw new Error(
-        "Bien introuvable.",
-      );
+      throw new Error("ASSET_NOT_FOUND");
     }
 
-    return {
-      ...bien,
-
-      documents: [
-        ...bien.documents,
-      ],
-
-      rentalHistory: [
-        ...bien.rentalHistory,
-      ],
-    };
+    return cloneBien(bien);
   },
 
-  async create(
-    data: BienFormData,
-  ): Promise<Bien> {
+  async create(data: BienFormData): Promise<Bien> {
     await delay();
 
-    const inventoryExists =
-      biens.some(
-        (bien) =>
-          bien.inventoryId
-            .toLowerCase() ===
-          data.inventoryId
-            .toLowerCase(),
-      );
+    const inventoryId = data.inventoryId.trim().toUpperCase();
+
+    const inventoryExists = biens.some(
+      (bien) => bien.inventoryId.toUpperCase() === inventoryId,
+    );
 
     if (inventoryExists) {
-      throw new Error(
-        "Cet identifiant d’inventaire existe déjà.",
-      );
+      throw new Error("INVENTORY_ALREADY_USED");
     }
 
     const newBien: Bien = {
-      id:
-        Math.max(
-          0,
-          ...biens.map(
-            (bien) =>
-              bien.id,
-          ),
-        ) + 1,
-
       ...data,
-
-      inventoryId:
-        data.inventoryId
-          .trim()
-          .toUpperCase(),
-
-      documents:
-        data.documents ?? [],
-
+      id: Math.max(0, ...biens.map((bien) => bien.id)) + 1,
+      designation: data.designation.trim(),
+      designationAr: data.designationAr.trim(),
+      assetStatus: "AVAILABLE",
+      assignment: "",
+      assignmentAr: "",
+      inventoryId,
+      documents: data.documents.map((document) => ({ ...document })),
+      vehicleDetails:
+        data.type === "VEHICLE"
+          ? { ...data.vehicleDetails }
+          : undefined,
+      machineDetails:
+        data.type === "MACHINE"
+          ? { ...data.machineDetails }
+          : undefined,
+      realEstateDetails:
+        data.type === "REAL_ESTATE"
+          ? { ...data.realEstateDetails }
+          : undefined,
       rentalHistory: [],
-
+      sale: undefined,
       archive: {
         archived: false,
       },
     };
 
-    biens = [
-      newBien,
-      ...biens,
-    ];
+    biens = [newBien, ...biens];
 
-    return newBien;
+    return cloneBien(newBien);
   },
 
   async update(
@@ -166,116 +135,91 @@ export const bienService = {
   ): Promise<Bien> {
     await delay();
 
-    const bienIndex =
-      biens.findIndex(
-        (bien) =>
-          bien.id === id,
-      );
+    const index = biens.findIndex((bien) => bien.id === id);
 
-    if (
-      bienIndex === -1
-    ) {
-      throw new Error(
-        "Bien introuvable.",
-      );
+    if (index === -1) {
+      throw new Error("ASSET_NOT_FOUND");
     }
 
-    const inventoryExists =
-      biens.some(
-        (bien) =>
-          bien.id !== id &&
-          bien.inventoryId
-            .toLowerCase() ===
-            data.inventoryId
-              .toLowerCase(),
-      );
+    if (biens[index].archive.archived) {
+      throw new Error("ARCHIVED_ASSET_READ_ONLY");
+    }
+
+    const inventoryId = data.inventoryId.trim().toUpperCase();
+
+    const inventoryExists = biens.some(
+      (bien) =>
+        bien.id !== id &&
+        bien.inventoryId.toUpperCase() === inventoryId,
+    );
 
     if (inventoryExists) {
-      throw new Error(
-        "Cet identifiant d’inventaire existe déjà.",
-      );
+      throw new Error("INVENTORY_ALREADY_USED");
     }
 
-    const currentBien =
-      biens[bienIndex];
+    const assignment = normalizeAssignment(
+      data.assetStatus,
+      data.assignment,
+      data.assignmentAr,
+    );
 
-    const updatedBien: Bien = {
-      ...currentBien,
+    const current = biens[index];
 
+    const updated: Bien = {
+      ...current,
       ...data,
-
+      ...assignment,
       id,
-
-      inventoryId:
-        data.inventoryId
-          .trim()
-          .toUpperCase(),
-
-      rentalHistory:
-        currentBien
-          .rentalHistory,
-
-      sale:
-        currentBien.sale,
-
-      archive:
-        currentBien.archive,
+      inventoryId,
+      documents: data.documents.map((document) => ({ ...document })),
+      vehicleDetails:
+        data.type === "VEHICLE"
+          ? { ...data.vehicleDetails }
+          : undefined,
+      machineDetails:
+        data.type === "MACHINE"
+          ? { ...data.machineDetails }
+          : undefined,
+      realEstateDetails:
+        data.type === "REAL_ESTATE"
+          ? { ...data.realEstateDetails }
+          : undefined,
+      rentalHistory: current.rentalHistory,
+      sale: current.sale,
+      archive: current.archive,
     };
 
-    biens[bienIndex] =
-      updatedBien;
+    biens[index] = updated;
 
-    return updatedBien;
+    return cloneBien(updated);
   },
 
   async addDocument(
     bienId: number,
-    document: Omit<
-      AppDocument,
-      "id"
-    >,
-  ): Promise<AppDocument>  {
+    document: Omit<AppDocument, "id">,
+  ): Promise<AppDocument> {
     await delay();
 
-    const bien =
-      biens.find(
-        (item) =>
-          item.id ===
-          bienId,
-      );
+    const bien = biens.find((item) => item.id === bienId);
 
     if (!bien) {
-      throw new Error(
-        "Bien introuvable.",
-      );
+      throw new Error("ASSET_NOT_FOUND");
     }
 
-    const allDocuments =
-      biens.flatMap(
-        (item) =>
-          item.documents,
-      );
+    const allDocuments = biens.flatMap((item) => item.documents);
 
-    const newDocument: AppDocument =
-      {
-        ...document,
+    const newDocument: AppDocument = {
+      ...document,
+      id:
+        Math.max(
+          0,
+          ...allDocuments.map((item) => item.id),
+        ) + 1,
+    };
 
-        id:
-          Math.max(
-            0,
-            ...allDocuments.map(
-              (item) =>
-                item.id,
-            ),
-          ) + 1,
-      };
+    bien.documents = [newDocument, ...bien.documents];
 
-    bien.documents = [
-      newDocument,
-      ...bien.documents,
-    ];
-
-    return newDocument;
+    return { ...newDocument };
   },
 
   async rent(
@@ -287,66 +231,31 @@ export const bienService = {
   ): Promise<RentalOperation> {
     await delay();
 
-    const bien =
-      biens.find(
-        (item) =>
-          item.id ===
-          bienId,
-      );
+    const bien = biens.find((item) => item.id === bienId);
 
-    if (!bien) {
-      throw new Error(
-        "Bien introuvable.",
-      );
+    if (!bien || bien.archive.archived) {
+      throw new Error("ASSET_NOT_AVAILABLE");
     }
 
-    if (
-      bien.archive.archived
-    ) {
-      throw new Error(
-        "Un bien archivé ne peut pas être loué.",
-      );
-    }
+    const allRentals = biens.flatMap((item) => item.rentalHistory);
 
-    const allRentals =
-      biens.flatMap(
-        (item) =>
-          item.rentalHistory,
-      );
+    const rental: RentalOperation = {
+      ...data,
+      id:
+        Math.max(
+          0,
+          ...allRentals.map((item) => item.id),
+        ) + 1,
+      bienId,
+      createdAt: new Date().toISOString().slice(0, 10),
+    };
 
-    const rental: RentalOperation =
-      {
-        ...data,
+    bien.rentalHistory = [rental, ...bien.rentalHistory];
+    bien.assetStatus = "RENTED";
+    bien.assignment = "";
+    bien.assignmentAr = "";
 
-        id:
-          Math.max(
-            0,
-            ...allRentals.map(
-              (item) =>
-                item.id,
-            ),
-          ) + 1,
-
-        bienId,
-
-        createdAt:
-          new Date()
-            .toISOString()
-            .slice(
-              0,
-              10,
-            ),
-      };
-
-    bien.rentalHistory = [
-      rental,
-      ...bien.rentalHistory,
-    ];
-
-    bien.assetStatus =
-      "RENTED";
-
-    return rental;
+    return { ...rental };
   },
 
   async sell(
@@ -358,88 +267,43 @@ export const bienService = {
   ): Promise<SaleOperation> {
     await delay();
 
-    const bien =
-      biens.find(
-        (item) =>
-          item.id ===
-          bienId,
-      );
+    const bien = biens.find((item) => item.id === bienId);
 
-    if (!bien) {
-      throw new Error(
-        "Bien introuvable.",
-      );
+    if (!bien || bien.archive.archived) {
+      throw new Error("ASSET_NOT_AVAILABLE");
     }
 
-    if (
-      bien.archive.archived
-    ) {
-      throw new Error(
-        "Ce bien est déjà archivé.",
-      );
-    }
+    const sales = biens
+      .map((item) => item.sale)
+      .filter((sale): sale is SaleOperation => Boolean(sale));
 
-    const sales =
-      biens
-        .map(
-          (item) =>
-            item.sale,
-        )
-        .filter(
-          (
-            sale,
-          ): sale is SaleOperation =>
-            Boolean(sale),
-        );
-
-    const sale: SaleOperation =
-      {
-        ...data,
-
-        id:
-          Math.max(
-            0,
-            ...sales.map(
-              (item) =>
-                item.id,
-            ),
-          ) + 1,
-
-        bienId,
-
-        createdAt:
-          new Date()
-            .toISOString()
-            .slice(
-              0,
-              10,
-            ),
-      };
-
-    bien.sale = sale;
-
-    bien.assetStatus =
-      "SOLD";
-
-    bien.archive = {
-      archived: true,
-
-      archivedAt:
-        sale.saleDate,
-
-      reason: "SOLD",
-
-      notes:
-        data.notes,
+    const sale: SaleOperation = {
+      ...data,
+      id: Math.max(0, ...sales.map((item) => item.id)) + 1,
+      bienId,
+      createdAt: new Date().toISOString().slice(0, 10),
     };
 
-    return sale;
+    bien.sale = sale;
+    bien.assetStatus = "DISPOSED";
+    bien.assignment = "";
+    bien.assignmentAr = "";
+    bien.archive = {
+      archived: true,
+      archivedAt: sale.saleDate,
+      reason: "DISPOSED",
+      reference: sale.contractReference,
+      documentFileName: sale.contractFileName,
+      notes: sale.notes,
+    };
+
+    return { ...sale };
   },
 
   async archive(
     bienId: number,
     data: {
-      reason: ArchiveReason;
+      reason?: ArchiveReason;
       archivedAt: string;
       reference?: string;
       documentFileName?: string;
@@ -448,43 +312,27 @@ export const bienService = {
   ): Promise<void> {
     await delay();
 
-    const bien = biens.find(
-      (item) =>
-        item.id === bienId,
-    );
+    const bien = biens.find((item) => item.id === bienId);
 
-    if (!bien) {
-      throw new Error(
-        "Bien introuvable.",
-      );
+    if (!bien || bien.archive.archived) {
+      throw new Error("ASSET_NOT_AVAILABLE");
     }
 
-    if (bien.archive.archived) {
-      throw new Error(
-        "Ce bien est déjà archivé.",
-      );
-    }
-
-    bien.assetStatus =
-      "ARCHIVED";
-
+    bien.assetStatus = "DISPOSED";
+    bien.assignment = "";
+    bien.assignmentAr = "";
     bien.archive = {
       archived: true,
-
-      archivedAt:
-        data.archivedAt,
-
-      reason:
-        data.reason,
-
-      reference:
-        data.reference,
-
-      documentFileName:
-        data.documentFileName,
-
-      notes:
-        data.notes,
+      archivedAt: data.archivedAt,
+      reason: "DISPOSED",
+      reference: data.reference,
+      documentFileName: data.documentFileName,
+      notes: data.notes,
     };
+  },
+
+  async remove(id: number): Promise<void> {
+    await delay();
+    biens = biens.filter((bien) => bien.id !== id);
   },
 };

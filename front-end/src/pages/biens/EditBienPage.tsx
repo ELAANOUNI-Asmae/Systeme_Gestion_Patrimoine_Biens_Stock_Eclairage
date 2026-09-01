@@ -189,6 +189,7 @@ function EditBienPage() {
       )}
 
       <BienForm
+        mode="edit"
         initialValues={
           initialValues
         }

@@ -33,16 +33,23 @@ import type {
 } from "../../types/user";
 
 function EditUserPage() {
-  const { id } =
+  const {
+    id,
+  } =
     useParams();
 
   const navigate =
     useNavigate();
 
-  const { t } =
+  const {
+    t,
+  } =
     useTranslation();
 
-  const [user, setUser] =
+  const [
+    user,
+    setUser,
+  ] =
     useState<User | null>(
       null,
     );
@@ -50,12 +57,19 @@ function EditUserPage() {
   const [
     loadingPage,
     setLoadingPage,
-  ] = useState(true);
+  ] =
+    useState(true);
 
-  const [saving, setSaving] =
+  const [
+    saving,
+    setSaving,
+  ] =
     useState(false);
 
-  const [error, setError] =
+  const [
+    error,
+    setError,
+  ] =
     useState("");
 
   useEffect(() => {
@@ -64,10 +78,14 @@ function EditUserPage() {
         try {
           const data =
             await userService.getById(
-              Number(id),
+              Number(
+                id,
+              ),
             );
 
-          setUser(data);
+          setUser(
+            data,
+          );
         } catch {
           setError(
             t(
@@ -82,48 +100,64 @@ function EditUserPage() {
       };
 
     void loadUser();
-  }, [id, t]);
+  }, [
+    id,
+    t,
+  ]);
 
-  const handleSubmit = async (
-    data: UserFormData,
-  ) => {
-    try {
-      setSaving(true);
-      setError("");
-
-      const updatedUser =
-        await userService.update(
-          Number(id),
-          data,
+  const handleSubmit =
+    async (
+      data: UserFormData,
+    ) => {
+      try {
+        setSaving(
+          true,
         );
 
-      window.dispatchEvent(
-        new CustomEvent(
-          "user-updated",
-          {
-            detail: {
-              userId:
-                updatedUser.id,
+        setError("");
+
+        const updatedUser =
+          await userService.update(
+            Number(
+              id,
+            ),
+            {
+              ...data,
+              pwd: "",
             },
-          },
-        ),
-      );
+          );
 
-      navigate(
-        ROUTES.USERS,
-      );
-    } catch {
-      setError(
-        t(
-          "users.pages.genericError",
-        ),
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
+        window.dispatchEvent(
+          new CustomEvent(
+            "user-updated",
+            {
+              detail: {
+                userId:
+                  updatedUser.id,
+              },
+            },
+          ),
+        );
 
-  if (loadingPage) {
+        navigate(
+          ROUTES.USERS,
+        );
+      } catch {
+        setError(
+          t(
+            "users.pages.genericError",
+          ),
+        );
+      } finally {
+        setSaving(
+          false,
+        );
+      }
+    };
+
+  if (
+    loadingPage
+  ) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
         {t(
@@ -144,42 +178,45 @@ function EditUserPage() {
     );
   }
 
-  const initialValues: UserFormData = {
-    firstname:
-      user.firstname,
+  const initialValues: UserFormData =
+    {
+      firstname:
+        user.firstname,
 
-    lastname:
-      user.lastname,
+      lastname:
+        user.lastname,
 
-    firstnameAr:
-      user.firstnameAr,
+      firstnameAr:
+        user.firstnameAr,
 
-    lastnameAr:
-      user.lastnameAr,
+      lastnameAr:
+        user.lastnameAr,
 
-    email:
-      user.email,
+      email:
+        user.email,
 
-    gender:
-      user.gender,
+      gender:
+        user.gender,
 
-    phone:
-      user.phone,
+      phone:
+        user.phone,
 
-    cin:
-      user.cin,
+      cin:
+        user.cin,
 
-    pwd: "",
+      pwd: "",
 
-    roleId:
-      user.role.id,
-  };
+      roleId:
+        user.role.id,
+    };
 
   return (
     <section className="mx-auto max-w-5xl space-y-6">
       <div>
         <Link
-          to={ROUTES.USERS}
+          to={
+            ROUTES.USERS
+          }
           className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-orange-600 dark:text-slate-400 dark:hover:text-orange-400"
         >
           <ArrowLeft
@@ -218,8 +255,15 @@ function EditUserPage() {
         submitLabel={t(
           "users.pages.save",
         )}
-        loading={saving}
-        onSubmit={handleSubmit}
+        loading={
+          saving
+        }
+        showPassword={
+          false
+        }
+        onSubmit={
+          handleSubmit
+        }
       />
     </section>
   );

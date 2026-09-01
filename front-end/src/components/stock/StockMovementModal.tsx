@@ -1,28 +1,25 @@
-import {
-  Boxes,
-} from "lucide-react";
 
+import { Boxes } from "lucide-react";
 import {
   useEffect,
+  useMemo,
   useState,
   type FormEvent,
 } from "react";
-
-import {
-  useTranslation,
-} from "react-i18next";
+import { useTranslation } from "react-i18next";
 
 import Modal from "../common/Modal";
 import DocumentManager from "../documents/DocumentManager";
 
-import type {
-  StockArticle,
-  StockMovementType,
+import {
+  calculateTotalHt,
+  calculateTotalTtc,
+  calculateUnitPriceTtc,
+  type StockArticle,
+  type StockMovementType,
 } from "../../types/stock";
 
-import type {
-  AppDocument,
-} from "../../types/document";
+import type { AppDocument } from "../../types/document";
 
 export type MovementData = {
   articleId: number;
@@ -33,6 +30,8 @@ export type MovementData = {
   reference?: string;
   date?: string;
   documents?: AppDocument[];
+  unitPriceHt?: number;
+  vatRate?: number;
 };
 
 type Props = {
@@ -54,32 +53,23 @@ function StockMovementModal({
   onClose,
   onSubmit,
 }: Props) {
-  const {
-    t,
-    i18n,
-  } = useTranslation();
+  const { i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith("ar");
+  const tr = (fr: string, ar: string) => (isArabic ? ar : fr);
 
-  const isArabic =
-    i18n.language.startsWith(
-      "ar",
-    );
-
-  const [quantity, setQuantity] =
-    useState(0);
-  const [reason, setReason] =
-    useState("");
+  const [quantity, setQuantity] = useState(0);
+  const [reason, setReason] = useState("");
   const [
     supplierOrBeneficiary,
     setSupplierOrBeneficiary,
   ] = useState("");
-  const [reference, setReference] =
-    useState("");
-  const [date, setDate] =
-    useState("");
+  const [reference, setReference] = useState("");
+  const [date, setDate] = useState("");
   const [documents, setDocuments] =
     useState<AppDocument[]>([]);
-  const [error, setError] =
-    useState("");
+  const [unitPriceHt, setUnitPriceHt] = useState(0);
+  const [vatRate, setVatRate] = useState(20);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!open) {
@@ -90,14 +80,31 @@ function StockMovementModal({
     setReason("");
     setSupplierOrBeneficiary("");
     setReference("");
-    setDate(
-      new Date()
-        .toISOString()
-        .slice(0, 10),
-    );
+    setDate(new Date().toISOString().slice(0, 10));
     setDocuments([]);
+    setUnitPriceHt(article?.unitPriceHt ?? 0);
+    setVatRate(article?.vatRate ?? 20);
     setError("");
-  }, [open, type]);
+  }, [open, type, article]);
+
+  const summary = useMemo(
+    () => ({
+      unitTtc: calculateUnitPriceTtc(
+        unitPriceHt,
+        vatRate,
+      ),
+      totalHt: calculateTotalHt(
+        quantity,
+        unitPriceHt,
+      ),
+      totalTtc: calculateTotalTtc(
+        quantity,
+        unitPriceHt,
+        vatRate,
+      ),
+    }),
+    [quantity, unitPriceHt, vatRate],
+  );
 
   if (!article) {
     return null;
@@ -122,8 +129,9 @@ function StockMovementModal({
       !date
     ) {
       setError(
-        t(
-          "stock.movement.required",
+        tr(
+          "La quantité, la date et le motif sont obligatoires.",
+          "الكمية والتاريخ والسبب إجبارية.",
         ),
       );
       return;
@@ -134,8 +142,24 @@ function StockMovementModal({
       quantity > article.quantity
     ) {
       setError(
-        t(
-          "stock.movement.insufficientStock",
+        tr(
+          `Stock insuffisant. Quantité disponible : ${article.quantity}.`,
+          `المخزون غير كافٍ. الكمية المتوفرة: ${article.quantity}.`,
+        ),
+      );
+      return;
+    }
+
+    if (
+      type === "ENTRY" &&
+      (unitPriceHt <= 0 ||
+        vatRate < 0 ||
+        vatRate > 100)
+    ) {
+      setError(
+        tr(
+          "Le prix unitaire HT et la TVA sont invalides.",
+          "ثمن الوحدة بدون الضريبة أو نسبة الضريبة غير صالحين.",
         ),
       );
       return;
@@ -149,15 +173,18 @@ function StockMovementModal({
       quantity,
       reason: reason.trim(),
       supplierOrBeneficiary:
-        supplierOrBeneficiary.trim() ||
-        undefined,
-      reference:
-        reference.trim() ||
-        undefined,
+        supplierOrBeneficiary.trim() || undefined,
+      reference: reference.trim() || undefined,
       date,
-      documents: [
-        ...documents,
-      ],
+      documents: [...documents],
+      unitPriceHt:
+        type === "ENTRY"
+          ? unitPriceHt
+          : undefined,
+      vatRate:
+        type === "ENTRY"
+          ? vatRate
+          : undefined,
     });
   };
 
@@ -167,12 +194,8 @@ function StockMovementModal({
       maxWidth="max-w-4xl"
       title={
         type === "ENTRY"
-          ? t(
-              "stock.movement.entryTitle",
-            )
-          : t(
-              "stock.movement.exitTitle",
-            )
+          ? tr("Entrée de stock", "إدخال للمخزون")
+          : tr("Sortie de stock", "إخراج من المخزون")
       }
       onClose={() => {
         if (!loading) {
@@ -196,97 +219,51 @@ function StockMovementModal({
           </div>
 
           <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {t(
-                "stock.movement.selectedArticle",
-              )}
+            <p className="font-semibold">{designation}</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {article.reference} · {article.brand} ·{" "}
+              {article.quantity} {article.unit}
             </p>
-
-            <p className="font-semibold text-slate-800 dark:text-slate-100">
-              {designation}
+            <p className="mt-1 text-xs text-slate-500">
+              {tr("Code-barres", "الباركود")}:{" "}
+              {article.barcode}
             </p>
-
-            <p className="text-xs text-slate-500">
-              {article.reference}
-              {" · "}
-              {article.quantity}{" "}
-              {t(
-                `stock.units.${article.unit}`,
-              )}
-            </p>
-
-            {article.serialNumber && (
-              <p className="mt-1 text-xs text-slate-500">
-                {t(
-                  "stock.form.serialNumber",
-                )}{" "}
-                : {article.serialNumber}
-              </p>
-            )}
-
-            {article.barcode && (
-              <p className="mt-1 text-xs text-slate-500">
-                {t(
-                  "stock.form.barcode",
-                )}{" "}
-                : {article.barcode}
-              </p>
-            )}
           </div>
         </div>
 
         <article className="rounded-2xl border border-slate-200 p-5 dark:border-slate-700">
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              {t(
-                "stock.movement.quantity",
-              )}{" "}
-              *
+            <label className="text-sm font-medium">
+              {tr("Quantité", "الكمية")} *
               <input
                 type="number"
                 min="1"
                 value={quantity}
                 onChange={(event) =>
-                  setQuantity(
-                    Number(
-                      event.target.value,
-                    ),
-                  )
+                  setQuantity(Number(event.target.value))
                 }
                 className={inputClassName}
               />
             </label>
 
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              {t(
-                "stock.movement.date",
-              )}{" "}
-              *
+            <label className="text-sm font-medium">
+              {tr("Date", "التاريخ")} *
               <input
                 type="date"
                 value={date}
                 onChange={(event) =>
-                  setDate(
-                    event.target.value,
-                  )
+                  setDate(event.target.value)
                 }
                 className={inputClassName}
               />
             </label>
 
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            <label className="text-sm font-medium">
               {type === "ENTRY"
-                ? t(
-                    "stock.movement.supplier",
-                  )
-                : t(
-                    "stock.movement.beneficiary",
-                  )}
+                ? tr("Fournisseur", "المورد")
+                : tr("Bénéficiaire", "المستفيد")}
               <input
-                type="text"
-                value={
-                  supplierOrBeneficiary
-                }
+                value={supplierOrBeneficiary}
                 onChange={(event) =>
                   setSupplierOrBeneficiary(
                     event.target.value,
@@ -296,39 +273,101 @@ function StockMovementModal({
               />
             </label>
 
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              {t(
-                "stock.movement.reference",
-              )}
+            <label className="text-sm font-medium">
+              {tr("Référence opération", "مرجع العملية")}
               <input
-                type="text"
                 value={reference}
                 onChange={(event) =>
-                  setReference(
-                    event.target.value,
-                  )
+                  setReference(event.target.value)
                 }
                 className={inputClassName}
               />
             </label>
 
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200 sm:col-span-2">
-              {t(
-                "stock.movement.reason",
-              )}{" "}
-              *
+            {type === "ENTRY" && (
+              <>
+                <label className="text-sm font-medium">
+                  {tr(
+                    "Prix unitaire HT (DH)",
+                    "ثمن الوحدة بدون الضريبة (درهم)",
+                  )}{" "}
+                  *
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={unitPriceHt}
+                    onChange={(event) =>
+                      setUnitPriceHt(
+                        Number(event.target.value),
+                      )
+                    }
+                    className={inputClassName}
+                  />
+                </label>
+
+                <label className="text-sm font-medium">
+                  {tr("TVA (%)", "الضريبة (%)")} *
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={vatRate}
+                    onChange={(event) =>
+                      setVatRate(
+                        Number(event.target.value),
+                      )
+                    }
+                    className={inputClassName}
+                  />
+                </label>
+              </>
+            )}
+
+            <label className="text-sm font-medium sm:col-span-2">
+              {tr("Motif", "السبب")} *
               <textarea
                 value={reason}
                 onChange={(event) =>
-                  setReason(
-                    event.target.value,
-                  )
+                  setReason(event.target.value)
                 }
                 rows={3}
-                className="mt-1 w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                placeholder={tr(
+                  "Indiquez clairement le motif de l’opération",
+                  "اكتب سبب العملية بوضوح",
+                )}
+                className="mt-1 w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-orange-500 dark:border-slate-600 dark:bg-slate-900"
               />
             </label>
           </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <PriceCard
+              label={tr(
+                "Prix unitaire TTC",
+                "ثمن الوحدة شامل الضريبة",
+              )}
+              value={summary.unitTtc}
+            />
+            <PriceCard
+              label={tr("Total HT", "الإجمالي بدون الضريبة")}
+              value={summary.totalHt}
+            />
+            <PriceCard
+              label={tr("Total TTC", "الإجمالي شامل الضريبة")}
+              value={summary.totalTtc}
+            />
+          </div>
+
+          {type === "ENTRY" && (
+            <p className="mt-3 text-xs text-slate-500">
+              {tr(
+                "Après validation, ce prix unitaire et cette TVA deviennent les valeurs courantes de l’article.",
+                "بعد التأكيد، يصبح ثمن الوحدة ونسبة الضريبة هما القيمتان الحاليتان للمادة.",
+              )}
+            </p>
+          )}
         </article>
 
         <DocumentManager
@@ -336,43 +375,52 @@ function StockMovementModal({
           onChange={setDocuments}
         />
 
-        <div className="sticky -bottom-5 z-10 -mx-5 mt-6 flex flex-col-reverse gap-3 border-t border-slate-200 bg-white px-5 py-4 dark:border-slate-700 dark:bg-slate-800 sm:-mx-6 sm:flex-row sm:justify-end sm:px-6 rtl:sm:justify-start">
+        <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end dark:border-slate-700">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold dark:border-slate-600"
           >
-            {t(
-              "stock.movement.cancel",
-            )}
+            {tr("Annuler", "إلغاء")}
           </button>
 
           <button
             type="submit"
             disabled={loading}
             className={[
-              "rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition disabled:opacity-50",
+              "rounded-xl px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50",
               type === "ENTRY"
                 ? "bg-green-600 hover:bg-green-700"
                 : "bg-orange-600 hover:bg-orange-700",
             ].join(" ")}
           >
             {loading
-              ? t(
-                  "stock.movement.saving",
-                )
+              ? tr("Enregistrement", "جارٍ الحفظ")
               : type === "ENTRY"
-                ? t(
-                    "stock.movement.confirmEntry",
-                  )
-                : t(
-                    "stock.movement.confirmExit",
-                  )}
+                ? tr("Confirmer l’entrée", "تأكيد الإدخال")
+                : tr("Confirmer la sortie", "تأكيد الإخراج")}
           </button>
         </div>
       </form>
     </Modal>
+  );
+}
+
+function PriceCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900">
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="mt-1 font-bold">
+        {value.toFixed(2)} DH
+      </p>
+    </div>
   );
 }
 

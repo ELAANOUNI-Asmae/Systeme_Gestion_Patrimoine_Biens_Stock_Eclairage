@@ -1,5 +1,4 @@
 import {
-  Bell,
   Building2,
   Globe2,
   Save,
@@ -375,67 +374,7 @@ function SettingsPage() {
           </div>
         </article>
 
-        {/* NOTIFICATIONS */}
-
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-colors dark:border-slate-700 dark:bg-slate-800 sm:p-6">
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400">
-              <Bell
-                size={21}
-              />
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                {t(
-                  "settings.notifications.title",
-                )}
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {t(
-                  "settings.notifications.description",
-                )}
-              </p>
-            </div>
-          </div>
-
-          <label className="mt-6 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-orange-200 dark:border-slate-700 dark:bg-slate-900/50 dark:hover:border-orange-500/30">
-            <div>
-              <p className="font-semibold text-slate-800 dark:text-slate-100">
-                {t(
-                  "settings.notifications.enable",
-                )}
-              </p>
-
-              <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                {t(
-                  "settings.notifications.enableDescription",
-                )}
-              </p>
-            </div>
-
-            <input
-              type="checkbox"
-              checked={
-                formData.notificationsEnabled
-              }
-              onChange={(
-                event,
-              ) =>
-                updateField(
-                  "notificationsEnabled",
-                  event.target
-                    .checked,
-                )
-              }
-              disabled={
-                loading
-              }
-              className="h-5 w-5 shrink-0 accent-orange-600"
-            />
-          </label>
-        </article>
+        
 
         {/* SAVE */}
 

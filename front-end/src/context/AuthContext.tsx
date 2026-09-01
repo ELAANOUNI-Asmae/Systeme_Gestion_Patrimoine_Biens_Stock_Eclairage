@@ -10,11 +10,16 @@ import type {
   LoginRequest,
 } from "../types/auth";
 
-import { mockAuthUsers } from "../mock/auth";
+import {
+  mockAuthUsers,
+} from "../mock/auth";
 
-import type { Permission } from "../constants/permissions";
+import type {
+  Permission,
+} from "../constants/permissions";
 
-
+const USER_STORAGE_KEY =
+  "user";
 
 export const AuthContext =
   createContext<AuthContextType>(
@@ -26,66 +31,100 @@ export function AuthProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [user, setUser] =
-    useState<AuthUser | null>(null);
+  const [
+    user,
+    setUser,
+  ] =
+    useState<AuthUser | null>(
+      null,
+    );
 
   useEffect(() => {
     const storedUser =
-      localStorage.getItem("user");
+      localStorage.getItem(
+        USER_STORAGE_KEY,
+      );
 
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    if (!storedUser) {
+      return;
+    }
+
+    try {
+      setUser(
+        JSON.parse(
+          storedUser,
+        ) as AuthUser,
+      );
+    } catch {
+      localStorage.removeItem(
+        USER_STORAGE_KEY,
+      );
     }
   }, []);
 
   const login = async (
     credentials: LoginRequest,
   ) => {
-    const foundUser = mockAuthUsers.find(
-      (user) =>
-        user.email === credentials.email &&
-        user.password ===
-          credentials.password,
-    );
+    const email =
+      credentials.email
+        .trim()
+        .toLowerCase();
+
+    const foundUser =
+      mockAuthUsers.find(
+        (item) =>
+          item.email.toLowerCase() ===
+            email &&
+          item.password ===
+            credentials.password,
+      );
 
     if (!foundUser) {
       return false;
     }
 
-    const authenticatedUser: AuthUser = {
-      id: foundUser.id,
-      firstName: foundUser.firstName,
-      lastName: foundUser.lastName,
-      email: foundUser.email,
-      role: foundUser.role,
-    };
+    const authenticatedUser: AuthUser =
+      {
+        id: foundUser.id,
+        firstName:
+          foundUser.firstName,
+        lastName:
+          foundUser.lastName,
+        email:
+          foundUser.email,
+        role: foundUser.role,
+      };
 
     localStorage.setItem(
-      "user",
-      JSON.stringify(authenticatedUser),
+      USER_STORAGE_KEY,
+      JSON.stringify(
+        authenticatedUser,
+      ),
     );
 
-    setUser(authenticatedUser);
+    setUser(
+      authenticatedUser,
+    );
 
     return true;
   };
 
   const logout = () => {
-    localStorage.removeItem("user");
+    localStorage.removeItem(
+      USER_STORAGE_KEY,
+    );
+
     setUser(null);
   };
 
   const hasPermission = (
     permission: Permission,
-  ) => {
-    if (!user) {
-      return false;
-    }
-
-    return user.role.permissions.includes(
-      permission,
+  ) =>
+    Boolean(
+      user?.role.permissions.includes(
+        permission,
+      ),
     );
-  };
 
   return (
     <AuthContext.Provider

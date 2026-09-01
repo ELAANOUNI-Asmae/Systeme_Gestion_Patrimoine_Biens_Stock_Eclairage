@@ -1,3 +1,4 @@
+
 export type NotificationType =
   | "INFO"
   | "WARNING"
@@ -21,7 +22,6 @@ export interface AppNotification {
   messageAr: string;
 
   type: NotificationType;
-
   module: NotificationModule;
 
   createdAt: string;
@@ -29,4 +29,7 @@ export interface AppNotification {
   read: boolean;
 
   targetUrl?: string;
+
+  recipientUserId?: number;
+  recipientPermission?: string;
 }

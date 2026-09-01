@@ -23,20 +23,29 @@ class AppUser {
     required this.cin,
     required this.role,
     this.password = '12345678',
+    this.isActive = true,
   });
 
   final int id;
+
   String firstName;
   String lastName;
+
   String firstNameAr;
   String lastNameAr;
+
   String email;
   String gender;
   String phone;
   String cin;
+
   AppRole role;
   String password;
+  bool isActive;
 
-  String get fullName => '$firstName $lastName';
-  String get fullNameAr => '$firstNameAr $lastNameAr';
+  String get fullName =>
+      '$firstName $lastName';
+
+  String get fullNameAr =>
+      '$firstNameAr $lastNameAr';
 }
