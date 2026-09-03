@@ -8,6 +8,8 @@ import lombok.Setter;
 @Setter
 public class DocumentResponseDto {
 
-    private String title;
+    private String title_fr;
+    private String title_ar;
+    private String type;
     private String path;
 }

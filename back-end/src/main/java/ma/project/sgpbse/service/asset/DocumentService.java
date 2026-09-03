@@ -7,6 +7,8 @@ import ma.project.sgpbse.dto.asset.request.DocumentRequestDto;
 import ma.project.sgpbse.dto.asset.response.DocumentResponseDto;
 import ma.project.sgpbse.entity.DueDate;
 import ma.project.sgpbse.entity.asset.*;
+import ma.project.sgpbse.entity.stock.InStock;
+import ma.project.sgpbse.entity.stock.StockMovement;
 import ma.project.sgpbse.enums.DocumentType;
 import ma.project.sgpbse.exception.asset.AssetNotExistException;
 import ma.project.sgpbse.mapper.asset.DocumentMapper;
@@ -50,7 +52,7 @@ public class DocumentService<T> {
         }
     }
     @Transactional
-    public Document createDocument(DocumentRequestDto dto, MultipartFile file){
+    public Document createDocument(DocumentRequestDto dto, MultipartFile file, String targetPermission){
 
         // 1. velidate the rule
         if (dto.getDocumentType() == DocumentType.DOCUMENT_OFFICIEL && dto.getEndDate() == null) {
@@ -75,7 +77,7 @@ public class DocumentService<T> {
 
         // 5. check if document is officiel
         if (dto.getDocumentType() == DocumentType.DOCUMENT_OFFICIEL) {
-            DueDate dueDate = dueDateService.createDueDate(dto.getEndDate(), doc.getTitle() + " de "+ doc.getAsset().getDesignation(), doc);
+            DueDate dueDate = dueDateService.createDueDate(dto.getEndDate(), doc.getTitle_fr()+" "+doc.getTitle_ar(), doc, dto.getAlertThreshold(), targetPermission);
             doc.setDueDate(dueDate);
         }
 
@@ -111,8 +113,25 @@ public class DocumentService<T> {
     }
 
     @Transactional
+    public void addMaintenance(Document document, Maintenance maintenance){
+        document.setMaintenance(maintenance);
+        documentRepository.save(document);
+    }
+
+    @Transactional
     public Set<DocumentResponseDto> getSetDocumentResponse(Set<Document> documentSet){
         return documentMapper.toDtosSet(documentSet);
+    }
+
+    @Transactional
+    public void addInStock(Document document, InStock inStock){
+        document.setInStock(inStock);
+        documentRepository.save(document);
+    }
+
+    @Transactional
+    public Set<Document> getDocumentsFromDtos(Set<DocumentRequestDto> dtos){
+        return documentMapper.toEntities(dtos);
     }
 
 }

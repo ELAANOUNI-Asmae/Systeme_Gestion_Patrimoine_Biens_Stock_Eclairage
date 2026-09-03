@@ -10,9 +10,13 @@ import java.time.LocalDate;
 @Setter
 public class DocumentRequestDto {
 
-    private String title;
+    private String title_fr;
+    private String title_ar;
     private String path;
     private DocumentType documentType;
+    private String type;
     private LocalDate endDate;
+    private Integer alertThreshold;
+
 
 }

@@ -10,6 +10,6 @@ import org.springframework.stereotype.Repository;
 public interface DueDateRepository extends JpaRepository<DueDate, Integer> {
 
     @Modifying
-    @Query("DELETE FROM DueDate d WHERE d.isTreated = true")
-    void deleteByIsTreatedTrue();
+    @Query("DELETE FROM DueDate d WHERE d.treated = true")
+    void deleteByTreatedTrue();
 }

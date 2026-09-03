@@ -11,7 +11,9 @@ import ma.project.sgpbse.entity.user.Role;
 
 public class UserDtoResponse {
 
-    private String fullname;
+    private String fullname_ar;
+    private String fullname_fr;
     private String email;
     private Role role;
+    private String serviceName;
 }

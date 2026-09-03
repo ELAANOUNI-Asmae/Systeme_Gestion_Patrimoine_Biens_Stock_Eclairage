@@ -5,6 +5,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import ma.project.sgpbse.entity.user.User;
+import ma.project.sgpbse.repository.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -12,14 +14,19 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
-@Component // Permet à Spring de détecter et gérer cette classe
+@Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
-    private JwtService jwtService; // Le service qu'on a créé pour manipuler le JWT
+    private JwtService jwtService;
+
+    @Autowired
+    private UserRepository userRepository; //injection du repository pour vérifier l'état du compte en BDD
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -48,36 +55,53 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         }
+
         // 2. Si pas de cookie trouvé, on passe au filtre suivant
         if (jwt == null) {
             filterChain.doFilter(request, response);
             return;
         }
-        try {
 
+        try {
             // Extract Email
             userEmail = jwtService.extractEmail(jwt);
-            //Extract permissions
-            List<String> permissions = jwtService.extractPermissions(jwt);
 
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                //Transform each string text of permissions to SimpleGrantedAuthority
-                List<SimpleGrantedAuthority> authorities = permissions.stream()
-                        .map(SimpleGrantedAuthority::new)
-                        .toList();
+                // Récupération de l'utilisateur en base de données
+                User user = userRepository.findByEmail(userEmail);
 
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userEmail,
-                        null,
-                        authorities // Spring Security stocke maintenant toutes les permissions de l'utilisateur !
-                );
+                if (user != null) {
 
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-                System.out.println("Autorités de l'utilisateur : " + SecurityContextHolder.getContext().getAuthentication().getAuthorities());
-                System.out.println(">>> Utilisateur authentifié : " + userEmail);
-                System.out.println(">>> Autorités chargées : " + SecurityContextHolder.getContext().getAuthentication().getAuthorities());
+                    // Vérification du statut (appelle votre méthode user.isEnabled())
+                    if (!user.isEnabled()) {
+                        System.out.println(">>> Accès refusé : Le compte de " + userEmail + " est INACTIVE");
+
+                        // Blocage direct avec un statut HTTP 403 Forbidden
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        response.setContentType("application/json;charset=UTF-8");
+                        response.getWriter().write("{\"error\": \"Votre compte est inactif. Accès refusé.\"}");
+                        return; // ⚠️ Stoppe la chaîne de filtres ici !
+                    }
+
+                    // Extract permissions depuis le JWT
+                    List<String> permissions = jwtService.extractPermissions(jwt);
+
+                    List<SimpleGrantedAuthority> authorities = permissions.stream()
+                            .map(SimpleGrantedAuthority::new)
+                            .toList();
+
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userEmail,
+                            null,
+                            authorities
+                    );
+
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                    System.out.println(">>> Utilisateur authentifié et actif : " + userEmail);
+                }
             }
         } catch (Exception e) {
             System.out.println("Erreur de validation du token JWT : " + e.getMessage());

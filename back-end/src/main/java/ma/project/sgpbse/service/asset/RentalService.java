@@ -3,19 +3,27 @@ package ma.project.sgpbse.service.asset;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import ma.project.sgpbse.dto.asset.request.DocumentRequestDto;
 import ma.project.sgpbse.dto.asset.request.RentalRequestDto;
 import ma.project.sgpbse.dto.asset.response.RentalResponseDto;
+import ma.project.sgpbse.entity.asset.Accident;
 import ma.project.sgpbse.entity.asset.Asset;
+import ma.project.sgpbse.entity.asset.Document;
 import ma.project.sgpbse.entity.asset.Rental;
+import ma.project.sgpbse.entity.user.User;
 import ma.project.sgpbse.enums.AssetStatus;
 import ma.project.sgpbse.enums.RentalStatus;
 import ma.project.sgpbse.exception.asset.RentalNotExistException;
 import ma.project.sgpbse.mapper.asset.RentalMapper;
 import ma.project.sgpbse.repository.asset.RentalRepository;
+import ma.project.sgpbse.service.NotificationService;
+import ma.project.sgpbse.service.user.CurrentUserService;
+import ma.project.sgpbse.service.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -29,6 +37,14 @@ public class RentalService {
     private final RentalRepository rentalRepository;
     @Autowired
     private final RentalMapper rentalMapper;
+    @Autowired
+    private final DocumentService documentService;
+    @Autowired
+    private final UserService userService;
+    @Autowired
+    private final NotificationService notificationService;
+    @Autowired
+    private final CurrentUserService currentUserService;
 
     //1.rent
     @Transactional
@@ -52,6 +68,18 @@ public class RentalService {
 
         //5.update asset status
         assetService.updateStatus(asset_id, AssetStatus.RENTED);
+
+        //envoyer notif sur l'accident
+        List<User> receivers = userService.filterByPermissionName("GET_RENTAL_NOTIFICATION");
+        User sender = currentUserService.getCurrentUser();
+        String title = "Location d'un bien";
+        String message = String.format("Le bien %s est loué à %s",
+                asset.getDesignation(),
+                rental.getTenantName()
+        );
+        for (User receiver : receivers) {
+            notificationService.sendDirectNotification(sender, receiver, title, message);
+        }
 
         //5.return result
         return rental.getId();
@@ -116,6 +144,29 @@ public class RentalService {
     public Rental getRentalById(Long id){
         return rentalRepository.findById(id)
                 .orElseThrow(() -> new RentalNotExistException("Rental not found"));
+    }
+
+    //join document
+    @Transactional
+    public String joinDoc(Long id, MultipartFile file, DocumentRequestDto documentRequestDto){
+
+        //1.check if accident exist
+        Rental rental = getRentalById(id);
+
+        //set target permission
+        String targetPermission = "GET_ALERT_RENTAL_OFF_DOCS";
+
+        //2.process the doc
+        Document document = documentService.createDocument(documentRequestDto, file, targetPermission);
+
+        //3. linking between doc and accident
+        documentService.addRental(document, rental);
+
+        rental.getDocumentList().add(document);
+        rentalRepository.save(rental);
+
+        return "uploaded successfully !";
+
     }
 
 }

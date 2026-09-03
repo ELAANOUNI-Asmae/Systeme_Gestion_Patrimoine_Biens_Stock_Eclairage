@@ -31,6 +31,13 @@ public class VehicleService{
         //get vehicle from dto
         Vehicle vehicle = vehicleMapper.toEntity(vehicleRequestDto);
 
+        if (assetService.assignmentIsNull(vehicle.getId())){
+            vehicle.setAssetStatus(AssetStatus.AVAILABLE);
+        }
+        else{
+            vehicle.setAssetStatus(AssetStatus.IN_USE);
+        }
+
         //save it to database
         vehicleRepository.save(vehicle);
 

@@ -1,40 +1,35 @@
 package ma.project.sgpbse.service;
 
-import jakarta.transaction.Transactional;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import ma.project.sgpbse.entity.DueDate;
 import ma.project.sgpbse.entity.asset.Document;
 import ma.project.sgpbse.repository.DueDateRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
-@AllArgsConstructor
 @Service
+@RequiredArgsConstructor
 public class DueDateService {
 
-    @Autowired
     private final DueDateRepository dueDateRepository;
 
-
     @Transactional
-    public DueDate createDueDate(LocalDate endDate, String ObjectMessage, Document document){
+    public DueDate createDueDate(LocalDate endDate, String objectMessage, Document document, Integer thresholdDays, String targetPermission) {
         DueDate dueDate = new DueDate();
         LocalDate today = LocalDate.now();
 
-        // Calcul de la marge (dateFin - date d'aujourd'hui en jours)
         long margeJours = ChronoUnit.DAYS.between(today, endDate);
 
-        // Génération du message d'alerte selon l'état de la marge
         String message;
         if (margeJours < 0) {
-            message = "CRITIQUE : Le document "+ ObjectMessage +"est expiré depuis " + Math.abs(margeJours) + " jour(s) !";
+            message = "CRITIQUE : Le document " + objectMessage + " est expiré depuis " + Math.abs(margeJours) + " jour(s) !";
         } else if (margeJours == 0) {
-            message = "URGENT : Le document "+ ObjectMessage +"expire aujourd'hui !";
+            message = "URGENT : Le document " + objectMessage + " expire aujourd'hui !";
         } else {
-            message = "ATTENTION : Le document "+ ObjectMessage +"expire dans " + margeJours + " jour(s).";
+            message = "ATTENTION : Le document " + objectMessage + " expire dans " + margeJours + " jour(s).";
         }
 
         dueDate.setEndDate(endDate);
@@ -42,8 +37,10 @@ public class DueDateService {
         dueDate.setMessage(message);
         dueDate.setDocument(document);
 
-        dueDateRepository.save(dueDate);
+        // Seuil et permission unique
+        dueDate.setThresholdDays(thresholdDays != null ? thresholdDays : 30);
+        dueDate.setTargetPermission(targetPermission);
 
-        return dueDate;
+        return dueDateRepository.save(dueDate);
     }
 }

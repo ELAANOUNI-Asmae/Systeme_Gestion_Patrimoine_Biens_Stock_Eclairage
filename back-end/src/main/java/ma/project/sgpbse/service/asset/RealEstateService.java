@@ -7,6 +7,7 @@ import ma.project.sgpbse.dto.asset.request.RealEstateRequestDto;
 import ma.project.sgpbse.dto.asset.response.RealEstateResponseDto;
 import ma.project.sgpbse.dto.asset.response.VehicleResponseDto;
 import ma.project.sgpbse.entity.asset.RealEstate;
+import ma.project.sgpbse.enums.AssetStatus;
 import ma.project.sgpbse.exception.asset.MachineNotExistException;
 import ma.project.sgpbse.exception.asset.RealEstateNotExistException;
 import ma.project.sgpbse.mapper.asset.RealEstateMapper;
@@ -35,6 +36,12 @@ public class RealEstateService {
 
         //get realEstate from dto
         RealEstate realEstate = realEstateMapper.toEntity(realEstateRequestDto);
+        if (assetService.assignmentIsNull(realEstate.getId())){
+            realEstate.setAssetStatus(AssetStatus.AVAILABLE);
+        }
+        else{
+            realEstate.setAssetStatus(AssetStatus.IN_USE);
+        }
 
         //save it to database
         realEstateRepository.save(realEstate);

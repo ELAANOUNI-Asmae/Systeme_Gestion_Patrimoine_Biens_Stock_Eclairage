@@ -34,4 +34,9 @@ public class PermissionService {
         return permissionRepository.findAllById(ids);
     }
 
+    @Transactional
+    public Permission getPermissionByName(String name){
+        return permissionRepository.findByName(name);
+    }
+
 }

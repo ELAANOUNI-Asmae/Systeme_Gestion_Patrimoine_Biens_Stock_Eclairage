@@ -12,11 +12,8 @@ public class MachineRequestDto extends AssetRequestDto{
     private String serialNumber;
 
     @NotNull
-    private String machineType;
+    private String brand;
 
     @NotNull
-    private Long hourMeter;
-
-    @NotNull
-    private Long kwMeter;
+    private String model;
 }

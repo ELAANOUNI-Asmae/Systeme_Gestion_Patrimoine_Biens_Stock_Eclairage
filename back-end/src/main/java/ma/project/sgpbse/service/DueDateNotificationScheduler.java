@@ -1,12 +1,12 @@
 package ma.project.sgpbse.service;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import ma.project.sgpbse.entity.DueDate;
 import ma.project.sgpbse.repository.DueDateRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -18,54 +18,46 @@ import java.util.List;
 public class DueDateNotificationScheduler {
 
     private final DueDateRepository dueDateRepository;
+    private final NotificationService notificationService;
 
-    // Tous les matins à 01h00 du matin
-    @Scheduled(cron = "0 0 1 * * ?")
+    @Scheduled(cron = "0 0 1 * * ?") // Exécuté tous les matins à 01h00 AM
     @Transactional
-    public void updateAndNotifyDueDates() {
+    public void processDueDateNotifications() {
         List<DueDate> dueDates = dueDateRepository.findAll();
         LocalDate today = LocalDate.now();
 
         for (DueDate dueDate : dueDates) {
-            // Recalcul de la marge au fil des jours
             long actualMargin = ChronoUnit.DAYS.between(today, dueDate.getEndDate());
             dueDate.setMargin(actualMargin);
 
-            // Mise à jour du message
+            String docTitle = (dueDate.getDocument() != null) ? dueDate.getDocument().getTitle_fr() : "";
+
             if (actualMargin < 0) {
-                dueDate.setMessage("CRITIQUE : Expiré depuis " + Math.abs(actualMargin) + " jour(s).");
+                dueDate.setMessage("CRITIQUE : Le document " + docTitle + " est expiré depuis " + Math.abs(actualMargin) + " jour(s).");
+            } else if (actualMargin == 0) {
+                dueDate.setMessage("URGENT : Le document " + docTitle + " expire aujourd'hui !");
             } else {
-                dueDate.setMessage("ATTENTION : Expire dans " + actualMargin + " jour(s).");
+                dueDate.setMessage("ATTENTION : Le document " + docTitle + " expire dans " + actualMargin + " jour(s).");
             }
 
-            // Déclencher une notification si la marge est <= 30 jours et pas encore notifiée
-            if (actualMargin <= 30 && !Boolean.TRUE.equals(dueDate.getIsTreated())) {
-                log.warn("NOTIFICATION [Doc ID {}]: {}", dueDate.getDocument().getId(), dueDate.getMessage());
-            }
-        }
-    }
+            int threshold = (dueDate.getThresholdDays() != null) ? dueDate.getThresholdDays() : 30;
 
-    @Scheduled(cron = "0 0 1 * * ?") // Tous les matins à 01h00
-    @Transactional
-    public void traiterEtNettoyerEcheances() {
-        List<DueDate> dueDates = dueDateRepository.findAll();
-        LocalDate today = LocalDate.now();
+            if (actualMargin <= threshold && !Boolean.TRUE.equals(dueDate.getTreated())) {
 
-        for (DueDate dueDate : dueDates) {
-            long margeActuelle = ChronoUnit.DAYS.between(today, dueDate.getEndDate());
-            dueDate.setMargin(margeActuelle);
+                // Envoie à la permission unique associée à cette DueDate
+                notificationService.notifyUsersWithPermission(
+                        dueDate.getTargetPermission(),
+                        "Alerte Échéance Document",
+                        dueDate.getMessage()
+                );
 
-            // Exemple de condition pour marquer comme traité
-            if (margeActuelle <= 0) {
-                log.info("Traitement de l'échéance expirée pour le doc ID {}", dueDate.getDocument().getId());
-                // Ton code de notification (mail, alerte systeme...)
-
-                dueDate.setIsTreated(true); // Marquer comme traité
+                dueDate.setTreated(true);
+                log.info("Notification générée avec succès pour DueDate ID: {}", dueDate.getId());
             }
         }
 
-        // ⚠️ Suppression en BDD de toutes les échéances marquées comme traitées
-        dueDateRepository.deleteByIsTreatedTrue();
-        log.info("Nettoyage effectué : Les échéances traitées ont été supprimées de la BDD.");
+        // Nettoyage des échéances traitées
+        dueDateRepository.deleteByTreatedTrue();
+        log.info("Scheduler d'échéances terminé et nettoyé.");
     }
 }

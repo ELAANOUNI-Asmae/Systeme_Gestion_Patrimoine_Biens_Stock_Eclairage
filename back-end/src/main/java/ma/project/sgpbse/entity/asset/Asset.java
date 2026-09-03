@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import ma.project.sgpbse.enums.AssetStatus;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.Set;
 @Entity
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "asset_type", discriminatorType = DiscriminatorType.STRING)
+@SQLRestriction("status <> 'ARCHIVED'")
 public abstract class Asset {
 
     @Id
@@ -26,9 +28,9 @@ public abstract class Asset {
     private Long id;
     private String designation;
     private AssetStatus assetStatus;
-    private LocalDate acuesition_date;
+    private LocalDate acquisition_date;
     private Double purchase_value;
-    private String assignement;
+    private String assignment;
     private String inventory_id;
 
     @OneToOne

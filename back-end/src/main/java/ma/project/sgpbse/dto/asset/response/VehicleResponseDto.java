@@ -18,4 +18,5 @@ public class VehicleResponseDto extends AssetResponseDto{
     private int fiscalHorsepower;
     private LocalDate firstRegistrationDate;
     private Long odometer;
+    private int manufactureYear;
 }
