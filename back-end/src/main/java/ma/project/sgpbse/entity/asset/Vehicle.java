@@ -23,7 +23,7 @@ public class Vehicle extends Asset{
     private String make;
     private int fiscalHorsepower;
     private LocalDate firstRegistrationDate;
-    private Long odometer;
+    private int manufactureYear;
 
     @OneToMany(mappedBy = "vehicle", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Accident> accidents;

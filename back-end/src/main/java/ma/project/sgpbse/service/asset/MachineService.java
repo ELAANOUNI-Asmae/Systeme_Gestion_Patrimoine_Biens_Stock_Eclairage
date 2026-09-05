@@ -8,6 +8,7 @@ import ma.project.sgpbse.dto.asset.request.MachineRequestDto;
 import ma.project.sgpbse.dto.asset.response.MachineResponseDto;
 import ma.project.sgpbse.dto.asset.response.VehicleResponseDto;
 import ma.project.sgpbse.entity.asset.Machine;
+import ma.project.sgpbse.enums.AssetStatus;
 import ma.project.sgpbse.exception.asset.MachineNotExistException;
 import ma.project.sgpbse.mapper.asset.MachineMapper;
 import ma.project.sgpbse.repository.asset.MachineRepository;
@@ -35,10 +36,13 @@ public class MachineService{
 
         //get machine from dto
         Machine machine = machineMapper.toEntity(machineRequestDto);
-        System.out.println(machine.getSerialNumber());
-        System.out.println(machine.getMachineType());
-        System.out.println(machine.getHourMeter());
-        System.out.println(machine.getKwMeter());
+
+        if (assetService.assignmentIsNull(machine.getId())){
+            machine.setAssetStatus(AssetStatus.AVAILABLE);
+        }
+        else{
+            machine.setAssetStatus(AssetStatus.IN_USE);
+        }
 
         //save it to database
         machineRepository.save(machine);

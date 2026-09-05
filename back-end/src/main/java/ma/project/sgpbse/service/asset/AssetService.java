@@ -3,20 +3,27 @@ package ma.project.sgpbse.service.asset;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import ma.project.sgpbse.dto.asset.request.DocumentRequestDto;
 import ma.project.sgpbse.dto.asset.response.AssetResponseDto;
 import ma.project.sgpbse.dto.asset.response.DocumentResponseDto;
-import ma.project.sgpbse.entity.asset.Asset;
-import ma.project.sgpbse.entity.asset.Document;
-import ma.project.sgpbse.entity.asset.Maintenance;
-import ma.project.sgpbse.entity.asset.Rental;
+import ma.project.sgpbse.entity.asset.*;
+import ma.project.sgpbse.entity.user.User;
 import ma.project.sgpbse.enums.AssetStatus;
 import ma.project.sgpbse.exception.asset.AssetNotExistException;
 import ma.project.sgpbse.mapper.asset.AssetMapper;
 import ma.project.sgpbse.mapper.asset.DocumentMapper;
 import ma.project.sgpbse.repository.asset.AssetRepository;
 import ma.project.sgpbse.repository.asset.DocumentRepository;
+import ma.project.sgpbse.repository.user.UserRepository;
+import ma.project.sgpbse.service.NotificationService;
+import ma.project.sgpbse.service.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Set;
@@ -29,32 +36,36 @@ public class AssetService {
 
     @Autowired
     private final AssetRepository assetRepository;
-    @Autowired
-    private final DocumentRepository documentRepository;
-    @Autowired
-    private final DocumentMapper documentMapper;
-    @Autowired
     private final AssetMapper assetMapper;
+    @Autowired
+    private final DocumentService documentService;
+    @Autowired
+    private final UserService userService;
+    @Autowired
+    private final UserRepository userRepository;
+    @Autowired
+    private final NotificationService notificationService;
 
 
     @Transactional
     public String updateStatus(Long id, AssetStatus assetStatus) {
         Asset asset = getAssetById(id);
+        AssetStatus oldStatus = asset.getAssetStatus();
         asset.setAssetStatus(assetStatus);
         assetRepository.save(asset);
+
         return "Successfully updated !";
     }
 
     @Transactional
-    public Long count() {
-        return this.assetRepository.count();
+    public Long countAllAssets() {
+        return assetRepository.count();
     }
 
     @Transactional
     public Set<DocumentResponseDto> getAllDocuments(Long id) {
         Asset asset = getAssetById(id);
-        Set<Document> documents = asset.getDocuments();
-        return documentMapper.toDtosSet(documents);
+        return documentService.getSetDocumentResponse(asset.getDocuments());
     }
 
     @Transactional
@@ -89,4 +100,75 @@ public class AssetService {
         assetRepository.save(asset);
     }
 
+    //join document
+    @Transactional
+    public Document joinDoc(Long id, MultipartFile file, DocumentRequestDto documentRequestDto){
+
+        //1.check if accident exist
+        Asset asset = getAssetById(id);
+
+        //set target permission
+        String targetPermission = "GET_ALERT_ASSET_OFF_DOCS";
+
+        //2.process the doc
+        Document document = documentService.createDocument(documentRequestDto, file, targetPermission);
+
+        //3. linking between doc and accident
+        documentService.addAsset(document, asset);
+
+        asset.getDocuments().add(document);
+        assetRepository.save(asset);
+
+        return document;
+
+    }
+
+    //count by status
+    @Transactional
+    public Long countAllAssetsByStatus(AssetStatus assetStatus){
+        return assetRepository.countByAssetStatus(assetStatus);
+    }
+
+    //search asset by designation, inventory_id or assignment
+    @Transactional
+    public Page<Asset> searchAsset(String query, Pageable pageable){
+        return assetRepository.searchGlobally(query, pageable);
+    }
+
+    //get all assets by type
+    @Transactional
+    public List<Asset> findAllByType(String type){
+        return assetRepository.findByDiscriminatorValue(type);
+    }
+
+    //get all assets by status
+    @Transactional
+    public List<Asset> findAllByStatus(AssetStatus status){
+        return assetRepository.findAllByAssetStatus(status);
+    }
+
+    //check if assignment value is null
+    @Transactional
+    public boolean assignmentIsNull(Long asset_id){
+        Asset asset = getAssetById(asset_id);
+        return asset.getAssignment() == null
+                || asset.getAssignment().isEmpty()
+                || asset.getAssignment().isBlank();
+    }
+
+    //get archived assets
+    @Transactional
+    public List<Asset> findAllArchived(){
+        return  assetRepository.findAllByAssetStatus(AssetStatus.ARCHIVED);
+    }
+
+    //search archived assets by designation or inventory_id
+    @Transactional
+    public List<Asset> searchArchivedAssets(String designation, String inventoryId) {
+        // Nettoyage des paramètres (vide -> null) pour la requête SQL
+        String cleanDesignation = (designation != null && !designation.trim().isEmpty()) ? designation.trim() : null;
+        String cleanInventoryId = (inventoryId != null && !inventoryId.trim().isEmpty()) ? inventoryId.trim() : null;
+
+        return assetRepository.searchArchivedAssets(cleanDesignation, cleanInventoryId);
+    }
 }

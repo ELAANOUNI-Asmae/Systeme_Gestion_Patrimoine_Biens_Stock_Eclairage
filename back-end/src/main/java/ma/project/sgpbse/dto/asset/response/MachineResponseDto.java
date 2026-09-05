@@ -8,7 +8,10 @@ import lombok.Setter;
 public class MachineResponseDto extends AssetResponseDto{
 
     private String serialNumber;
-    private String machineType;
+    private String brand;
+    private String model;
     private String assignment;
+    private Long power;
+    private String technicalRef;
 
 }

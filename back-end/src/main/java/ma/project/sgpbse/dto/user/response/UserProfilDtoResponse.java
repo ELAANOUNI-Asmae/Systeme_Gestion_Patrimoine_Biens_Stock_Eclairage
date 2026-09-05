@@ -12,7 +12,8 @@ import ma.project.sgpbse.enums.Gender;
 public class UserProfilDtoResponse {
     private Long id;
     private String email;
-    private String fullname;
+    private String fullname_fr;
+    private String fullname_ar;
     private Gender gender;
     private String phone;
     private String cin;

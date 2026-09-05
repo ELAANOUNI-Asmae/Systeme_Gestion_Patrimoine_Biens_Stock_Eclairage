@@ -13,6 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 public class DisposalResponseDto {
 
+
     private LocalDate disposalDate;
     private Double amount;
     private List<DocumentResponseDto> documentResponseDtos;

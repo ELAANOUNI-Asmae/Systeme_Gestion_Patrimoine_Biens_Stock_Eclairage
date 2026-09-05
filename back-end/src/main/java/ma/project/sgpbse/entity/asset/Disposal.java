@@ -24,6 +24,8 @@ public class Disposal {
 
     private LocalDate disposalDate;
     private Double amount;
+
+    @OneToMany(mappedBy = "disposal")
     private List<Document> documentList;
 
     @Enumerated(EnumType.STRING)

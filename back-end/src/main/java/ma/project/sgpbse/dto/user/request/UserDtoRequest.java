@@ -19,12 +19,22 @@ public class UserDtoRequest {
     @Size(min = 3, max = 50, message = "Le prénom doit contenir au moins 3 caractère")
     @NotBlank(message = "Le prénom est obligatoire !")
     @NotNull
-    private String firstname;
+    private String firstname_fr;
+
+    @Size(min = 3, max = 50, message = "Le prénom doit contenir au moins 3 caractère")
+    @NotBlank(message = "Le prénom est obligatoire !")
+    @NotNull
+    private String firstname_ar;
 
     @Size(min = 3, max = 50, message = "Le nom doit contenir au moins 3 caractère")
     @NotBlank(message = "Le nom est obligatoire !")
     @NotNull
-    private String lastname;
+    private String lastname_fr;
+
+    @Size(min = 3, max = 50, message = "Le nom doit contenir au moins 3 caractère")
+    @NotBlank(message = "Le nom est obligatoire !")
+    @NotNull
+    private String lastname_ar;
 
     private Gender gender;
 
@@ -43,6 +53,9 @@ public class UserDtoRequest {
             message = "Invalid Moroccan CIN"
     )
     private String cin;
+    @NotBlank(message = "Le mot de passe est obligatoire !")
+    @NotNull
+    private String serviceName;
 
     @NotBlank(message = "Le mot de passe est obligatoire !")
     @NotNull

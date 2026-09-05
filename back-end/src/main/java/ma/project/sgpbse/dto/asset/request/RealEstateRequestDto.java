@@ -20,4 +20,8 @@ public class RealEstateRequestDto extends AssetRequestDto{
     private Domain domain;
     @NonNull
     private String realEstateType;
+    @NonNull
+    private Long power;
+    @NonNull
+    private String technicalRef;
 }

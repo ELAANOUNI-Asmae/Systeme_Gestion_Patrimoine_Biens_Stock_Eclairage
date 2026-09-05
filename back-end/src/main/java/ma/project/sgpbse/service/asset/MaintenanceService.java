@@ -2,10 +2,14 @@ package ma.project.sgpbse.service.asset;
 
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import ma.project.sgpbse.dto.asset.request.DocumentRequestDto;
 import ma.project.sgpbse.dto.asset.request.MaintenanceRequestDto;
 import ma.project.sgpbse.dto.asset.response.MaintenanceResponseDto;
+import ma.project.sgpbse.entity.asset.Accident;
 import ma.project.sgpbse.entity.asset.Asset;
+import ma.project.sgpbse.entity.asset.Document;
 import ma.project.sgpbse.entity.asset.Maintenance;
+import ma.project.sgpbse.entity.user.User;
 import ma.project.sgpbse.enums.AssetStatus;
 import ma.project.sgpbse.enums.MaintenanceStatus;
 import ma.project.sgpbse.exception.asset.AssetNotExistException;
@@ -13,8 +17,12 @@ import ma.project.sgpbse.exception.asset.MaintenanceNotExistException;
 import ma.project.sgpbse.mapper.asset.MaintenanceMapper;
 import ma.project.sgpbse.repository.asset.AssetRepository;
 import ma.project.sgpbse.repository.asset.MaintenanceRepository;
+import ma.project.sgpbse.service.NotificationService;
+import ma.project.sgpbse.service.user.CurrentUserService;
+import ma.project.sgpbse.service.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -29,7 +37,14 @@ public class MaintenanceService {
     private final MaintenanceMapper maintenanceMapper;
     @Autowired
     private final AssetService assetService;
-
+    @Autowired
+    private final DocumentService documentService;
+    @Autowired
+    private final UserService userService;
+    @Autowired
+    private final NotificationService notificationService;
+    @Autowired
+    private final CurrentUserService currentUserService;
 
     //1.planifier
     @Transactional
@@ -52,6 +67,18 @@ public class MaintenanceService {
 
         //update asset status
         assetService.updateStatus(asset_id, AssetStatus.DAMAGED);
+
+        //envoyer notif sur l'accident
+        List<User> receivers = userService.filterByPermissionName("GET_MAINTENANCE_NOTIFICATION");
+        User sender = currentUserService.getCurrentUser();
+        String title = "Planification de la maintenance d'un bien";
+        String message = String.format("La maintenance du bien %s est planifié pour la date %s",
+                asset.getDesignation(),
+                maintenance.getScheduledDate()
+        );
+        for (User receiver : receivers) {
+            notificationService.sendDirectNotification(sender, receiver, title, message);
+        }
 
         //7.return maintenance id
         return maintenance.getId();
@@ -86,6 +113,17 @@ public class MaintenanceService {
 
         //4.save changes to db
         maintenanceRepository.save(maintenance);
+
+        //envoyer notif sur l'accident
+        List<User> receivers = userService.filterByPermissionName("GET_MAINTENANCE_NOTIFICATION");
+        User sender = currentUserService.getCurrentUser();
+        String title = "Démarrage de la maintenance d'un bien";
+        String message = String.format("La maintenance du bien %s est bien démarré !",
+                maintenance.getAsset().getDesignation()
+        );
+        for (User receiver : receivers) {
+            notificationService.sendDirectNotification(sender, receiver, title, message);
+        }
 
         //5.return result
         return "Maintenance successfully started ! ";
@@ -122,6 +160,17 @@ public class MaintenanceService {
 
         //5.save changes to db
         maintenanceRepository.save(maintenance);
+
+        //envoyer notif sur l'accident
+        List<User> receivers = userService.filterByPermissionName("GET_MAINTENANCE_NOTIFICATION");
+        User sender = currentUserService.getCurrentUser();
+        String title = "Fin de la maintenance d'un bien";
+        String message = String.format("La maintenance du bien %s est complété !",
+                maintenance.getAsset().getDesignation()
+        );
+        for (User receiver : receivers) {
+            notificationService.sendDirectNotification(sender, receiver, title, message);
+        }
 
         //6.print report
         return maintenanceMapper.toDto(maintenance);
@@ -186,6 +235,17 @@ public class MaintenanceService {
         //3.change status to canceled
         maintenance.setMaintenanceStatus(MaintenanceStatus.CANCELLED);
 
+        //envoyer notif sur l'accident
+        List<User> receivers = userService.filterByPermissionName("GET_MAINTENANCE_NOTIFICATION");
+        User sender = currentUserService.getCurrentUser();
+        String title = "Annulation d'une maintenance";
+        String message = String.format("La maintenance du bien %s est annulée !",
+                maintenance.getAsset().getDesignation()
+        );
+        for (User receiver : receivers) {
+            notificationService.sendDirectNotification(sender, receiver, title, message);
+        }
+
         //4.return result
         return "successfuly canceled !";
     }
@@ -237,6 +297,29 @@ public class MaintenanceService {
                 .orElseThrow(
                         () -> new MaintenanceNotExistException("Asset Not Exist Exception")
                 );
+    }
+
+    //join document
+    @Transactional
+    public String joinDoc(Long id, MultipartFile file, DocumentRequestDto documentRequestDto){
+
+        //1.check if accident exist
+        Maintenance maintenance = getMaintenanceById(id);
+
+        //set target permission
+        String targetPermission = "GET_ALERT_MAINTENANCE_OFF_DOCS";
+
+        //2.process the doc
+        Document document = documentService.createDocument(documentRequestDto, file, targetPermission);
+
+        //3. linking between doc and accident
+        documentService.addMaintenance(document, maintenance);
+
+        maintenance.getDocumentList().add(document);
+        maintenanceRepository.save(maintenance);
+
+        return "uploaded successfully !";
+
     }
 
 }

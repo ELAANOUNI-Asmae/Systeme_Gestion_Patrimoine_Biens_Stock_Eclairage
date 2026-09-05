@@ -9,5 +9,5 @@ public enum AssetStatus {
     OUT_OF_SERVICE,      // Hors service
     DAMAGED,             // Endommagé
     DISPOSED,            // Cédé (vendu, donné, transféré...)
-    ARCHIVED             // Archivé
+    ARCHIVED            // Archivé
 }

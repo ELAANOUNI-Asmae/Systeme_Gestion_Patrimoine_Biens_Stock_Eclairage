@@ -1,5 +1,6 @@
 package ma.project.sgpbse.controller.user;
 
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import ma.project.sgpbse.dto.user.request.RoleRequestDto;
@@ -8,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @AllArgsConstructor
 
@@ -48,5 +51,10 @@ public class RoleController {
         return ResponseEntity.ok(roleService.getAllRoles());
     }
 
+    @GetMapping("/names")
+    @PreAuthorize("hasAuthority('GET_ROLE_NAMES')")
+    public ResponseEntity<List<String>> findAllRoleNames(){
+        return ResponseEntity.ok(roleService.findAllRoleNames());
+    }
 
 }

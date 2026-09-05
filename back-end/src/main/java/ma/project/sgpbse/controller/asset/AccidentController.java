@@ -3,12 +3,16 @@ package ma.project.sgpbse.controller.asset;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import ma.project.sgpbse.dto.asset.request.AccidentRequestDto;
+import ma.project.sgpbse.dto.asset.request.DocumentRequestDto;
 import ma.project.sgpbse.dto.asset.response.AccidentResponseDto;
+import ma.project.sgpbse.entity.asset.Document;
 import ma.project.sgpbse.service.asset.AccidentService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 @AllArgsConstructor
@@ -39,5 +43,14 @@ public class AccidentController {
     @PreAuthorize("hasAuthority('GET_ALL_ACCIDENT')")
     public ResponseEntity<List<AccidentResponseDto>> getAllAccidents(){
         return ResponseEntity.ok(accidentService.getAllAccidents());
+    }
+
+    //join doc
+    @PostMapping(value = "/joinDoc/{accident_id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> uploadDocument(
+            @PathVariable Long accident_id,
+            @RequestPart("file") MultipartFile file,
+            @RequestPart("data") @Valid DocumentRequestDto documentRequestDto) {
+        return ResponseEntity.ok(accidentService.joinDoc(accident_id, file, documentRequestDto));
     }
 }

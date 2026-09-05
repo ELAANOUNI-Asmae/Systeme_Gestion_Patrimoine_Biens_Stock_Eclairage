@@ -2,13 +2,17 @@ package ma.project.sgpbse.controller.asset;
 
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import ma.project.sgpbse.dto.asset.request.DocumentRequestDto;
 import ma.project.sgpbse.dto.asset.request.MaintenanceRequestDto;
 import ma.project.sgpbse.dto.asset.response.MaintenanceResponseDto;
 import ma.project.sgpbse.service.asset.MaintenanceService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 
 @AllArgsConstructor
@@ -83,6 +87,14 @@ public class MaintenanceController {
     @PreAuthorize("hasAuthority('UPDATE_MAINTENANCE_STATUS')")
     public ResponseEntity<String> updateMaintenanceStatus(@PathVariable Long maintenance_id, @RequestBody String status){
         return ResponseEntity.ok(maintenanceService.updateMaintenanceStatus(maintenance_id, status));
+    }
+
+    @PostMapping(value = "/joinDoc/{maintenance_id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> uploadDocument(
+            @PathVariable Long maintenance_id,
+            @RequestPart("file") MultipartFile file,
+            @RequestPart("data") @Valid DocumentRequestDto documentRequestDto) {
+        return ResponseEntity.ok(maintenanceService.joinDoc(maintenance_id, file, documentRequestDto));
     }
 
 }

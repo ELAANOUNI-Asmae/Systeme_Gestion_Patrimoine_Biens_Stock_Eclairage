@@ -21,5 +21,6 @@ public class VehicleRequestDto extends AssetRequestDto{
     @NonNull
     private LocalDate firstRegistrationDate;
     private Long odometer;
+    private int manufactureYear;
 
 }

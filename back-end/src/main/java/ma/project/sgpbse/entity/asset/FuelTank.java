@@ -13,10 +13,9 @@ import java.util.List;
 @Getter
 @Setter
 @AllArgsConstructor
-@NoArgsConstructor
 
 @Entity
-@Table(name = "fuel-tank")
+@Table(name = "fuelTank")
 public class FuelTank {
 
     @Id
@@ -30,7 +29,7 @@ public class FuelTank {
     @JoinColumn(name = "vehicle_id")
     private Vehicle vehicle;
 
-    @OneToMany(mappedBy = "fuel-tank", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Doc> docList;
+    @OneToMany(mappedBy = "fuelTank", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Document> docList;
 
 }

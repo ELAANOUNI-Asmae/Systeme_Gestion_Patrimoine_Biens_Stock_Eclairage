@@ -6,6 +6,7 @@ import ma.project.sgpbse.dto.user.request.AuthDtoRequest;
 import ma.project.sgpbse.entity.user.PasswordResetToken;
 import ma.project.sgpbse.entity.user.Permission;
 import ma.project.sgpbse.entity.user.User;
+import ma.project.sgpbse.exception.user.AccountInactiveException;
 import ma.project.sgpbse.exception.user.UserNotExistException;
 import ma.project.sgpbse.exception.user.UserPwdNotValidException;
 import ma.project.sgpbse.repository.user.PasswordResetTokenRepository;
@@ -36,26 +37,33 @@ public class AuthService {
     @Transactional
     public AuthResponse login(AuthDtoRequest authDtoRequest){
 
-        //1.Check if user exist
+        // 1. Check if user exist
         User user = userRepository.findByEmail(authDtoRequest.getEmail());
         if (user == null){
             throw new UserNotExistException("Nom utilisateur ou mot de passe incorrecte!");
         }
-        //3.verify user password by calculating hash with sault
+
+        // 2. Verify user password by calculating hash with salt
         boolean valid = passwordEncoder.matches(authDtoRequest.getPwd(), user.getHash_pwd());
 
         if (!valid){
             throw new UserPwdNotValidException("Nom utilisateur ou mot de passe incorrecte!");
         }
 
-        // 3. On génère le token JWT
+        // 3. VÉRIFICATION DU STATUT DU COMPTE (Nouveau)
+        // Utilise la méthode user.isEnabled() que vous avez implémentée
+        if (!user.isEnabled()) { // Ou user.getAccountStatus() == AccountStatus.INACTIVE
+            throw new AccountInactiveException("Votre compte est inactif. Veuillez contacter l'administrateur.");
+        }
+
+        // 4. On génère le token JWT
         List<String> permissions = new ArrayList<>();
         for (Permission p : user.getRole().getPermissions()){
             permissions.add(p.getName());
         }
-        String token = jwtService.genererToken(user.getEmail(), user.getRole().getName(),permissions);
+        String token = jwtService.genererToken(user.getEmail(), user.getRole().getName(), permissions);
 
-        // 4. On renvoie le token à l'utilisateur sous forme de JSON
+        // 5. On renvoie le token à l'utilisateur sous forme de JSON
         return new AuthResponse(token);
     }
 

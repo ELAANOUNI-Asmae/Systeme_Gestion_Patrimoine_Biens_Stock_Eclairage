@@ -14,5 +14,6 @@ public interface DocumentMapper {
     Set<Document> toEntities(Set<DocumentRequestDto> documentRequestDtoSet);
     List<DocumentResponseDto> toDtosList(List<Document> documents);
     Set<DocumentResponseDto> toDtosSet(Set<Document> documents);
+    Document toEntity(DocumentRequestDto dto);
 
 }
