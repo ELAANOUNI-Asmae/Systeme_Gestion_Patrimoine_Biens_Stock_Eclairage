@@ -1,10 +1,21 @@
 HELP.md
-target/
-.mvn/wrapper/maven-wrapper.jar
+
+# --- Java & Maven (Back-end) ---
+**/target/
+**/.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
+# --- NodeJS & JS (Futur Front-end) ---
+**/node_modules/
+**/dist/
+**/build/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- STS (Spring Tool Suite) ---
 .apt_generated
 .classpath
 .factorypath
@@ -13,22 +24,48 @@ target/
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
-.idea
+# --- IntelliJ IDEA ---
+.idea/
 *.iws
 *.iml
 *.ipr
+out/
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
+# --- NetBeans ---
+**/nbproject/private/
+**/nbbuild/
+**/nbdist/
+**/.nb-gradle/
+**/build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### VS Code ###
+# --- VS Code & Environnement ---
 .vscode/
 .env
+# VS Code local history
+.history/
+**/.history/
+
+# --- Local uploads / generated documents ---
+back-end/public/documents/
+
+# --- Local test credentials ---
+mobile/integration_test/test_env.json
+
+# --- Temporary / backup files ---
+*.bak
+*.before-*
+*.documents-backup
+*.analyze-fix-backup
+
+# --- Cypress local backups ---
+front-end/.cypress-backup-*/
+front-end/.cypress16-env-fix-backup-*/
+
+# --- Archives / transfer files ---
+*.rar
+*.zip
+
+# --- Temporary local files ---
+back-end/query

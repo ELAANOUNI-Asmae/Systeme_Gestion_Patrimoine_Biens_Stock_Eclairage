@@ -1,0 +1,17 @@
+ID,Module,Type,Objective,Expected
+FT-MOB-01,Configuration,Functional,Validate test environment,Credentials and API URL configured
+FT-MOB-02,Public Lighting,API functional,Read public light points without auth,HTTP 200 and JSON list
+FT-MOB-03,Public Lighting,API functional,Read open public failures without auth,HTTP 200 and JSON list
+FT-MOB-04,Security,API functional,Reject anonymous /user/me,HTTP 401 or 403
+FT-MOB-05,Authentication,API functional,Real backend login,HTTP 200 and jwt-token cookie
+FT-MOB-06,Authentication,API functional,Authenticated current user,HTTP 200 and JSON object
+FT-MOB-07,Public UI,UI functional,Public failure screen as landing page,Visible before login
+FT-MOB-08,i18n,UI functional,Switch French and Arabic,Both render correctly
+FT-MOB-09,Public UI,UI functional,Invalid location validation without create,Validation error and no record
+FT-MOB-10,Authentication,UI functional,Required field validation,Required messages
+FT-MOB-11,Authentication,UI functional,Reject invalid credentials,Error and stay on login
+FT-MOB-12,Dashboard,UI functional,Valid login opens dashboard,Dashboard visible
+FT-MOB-13,Users Roles Assets,UI functional,Navigate core admin modules,Pages open without mojibake
+FT-MOB-14,Stock Lighting,UI functional,Navigate operational modules,Pages and Stock tabs visible
+FT-MOB-15,Support modules,UI functional,Navigate Reports Notifications Profile Settings,Pages open without mojibake
+FT-MOB-16,Authentication,UI functional,Logout,Return to public page
