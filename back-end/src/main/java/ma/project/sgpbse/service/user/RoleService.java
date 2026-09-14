@@ -1,0 +1,166 @@
+package ma.project.sgpbse.service.user;
+
+import jakarta.transaction.Transactional;
+import lombok.AllArgsConstructor;
+import ma.project.sgpbse.dto.user.request.RoleRequestDto;
+import ma.project.sgpbse.dto.user.response.RoleResponseDto;
+import ma.project.sgpbse.entity.user.Permission;
+import ma.project.sgpbse.entity.user.Role;
+import ma.project.sgpbse.exception.user.PermissionNotExistException;
+import ma.project.sgpbse.exception.user.RoleAlreadyExistException;
+import ma.project.sgpbse.exception.user.RoleNotExistException;
+import ma.project.sgpbse.mapper.user.RoleMapper;
+import ma.project.sgpbse.repository.user.PermissionRepository;
+import ma.project.sgpbse.repository.user.RoleRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+@Service
+@AllArgsConstructor
+public class RoleService {
+
+    @Autowired
+    private final RoleRepository roleRepository;
+    @Autowired
+    private final PermissionService permissionService;
+
+    @Autowired
+    private final RoleMapper roleMapper;
+
+    //Method 1: Create Role
+    @Transactional
+    public String createRole(RoleRequestDto roleRequestDto){
+
+        //1.Check if role already exist
+        Role role = roleRepository.findByName(roleRequestDto.getName());
+        if (role != null){
+            throw new RoleAlreadyExistException("Ce rôle existe déjà !");
+        }
+
+        //2.Prepare permissions set
+        Set<Permission> permissions = new HashSet<>();
+        for (Long perm_id : roleRequestDto.getPermission_ids()){
+
+            //Check if permission exist
+            Permission p = permissionService.getPermissionById(perm_id);
+
+            //Add permission to role set
+            permissions.add(p);
+        }
+
+        //2.Create Role
+        role = Role.builder()
+                .name(roleRequestDto.getName())
+                .permissions(permissions)
+                .build();
+
+        //3.Save role to database
+        roleRepository.save(role);
+
+        return "Successfully created";
+    }
+
+    //Method 2: Delete Role
+    @Transactional
+    public String deleteRole(@PathVariable Long role_id){
+
+        //1.Check if role exist
+        Role role = roleRepository.findById(role_id)
+                .orElseThrow(
+                        () -> new RoleNotExistException("Role n'existe pas !")
+                );
+
+        //2.Delete role
+        roleRepository.delete(role);
+
+        return "Successfully deleted";
+    }
+
+    //Method 3: update role
+    @Transactional
+    public Long updateRole(Long id, RoleRequestDto roleRequestDto){
+
+        //1.Check if role exist
+        Role role = roleRepository.findById(id).orElseThrow(
+                () -> new RoleNotExistException("Role n'existe pas !")
+        );
+
+        //2.update role name
+        role.setName(roleRequestDto.getName());
+
+        //3.get permissions
+        List<Permission> newPermissions = permissionService.getAllPermissionsByIds(roleRequestDto.getPermission_ids());
+
+        //4.Test if permissions are not empty
+        if (newPermissions.isEmpty()){
+            throw new IllegalArgumentException("Aucune permission valide trouvée pour les IDs fournis.");
+        }
+
+        //5.Update role permissions
+        role.getPermissions().clear();
+        role.getPermissions().addAll(newPermissions);
+
+        //3.return response
+        return roleRepository.save(role).getId();
+    }
+
+    //Method 4: get role permissions
+    @Transactional
+    public List<String> getRolePermissions(Long role_id){
+        //1.Check if role exist
+        Role role = roleRepository.findById(role_id)
+                .orElseThrow(
+                        () -> new RoleNotExistException("Role n'existe pas !")
+                );
+
+        //2.Construct a list of permissions
+        List<String> p = new ArrayList<>();
+        for (Permission permission : role.getPermissions()){
+            p.add(permission.getPermission());
+        }
+
+        return p;
+    }
+
+    //Method 5: get all roles
+    @Transactional
+    public List<RoleResponseDto> getAllRoles(){
+        return roleMapper.toDtos(roleRepository.findAll());
+    }
+
+    @Transactional
+    public String addPermissionToRole(Long role_id, String permissionName){
+
+        //1.check if role exist
+        Role role = roleRepository.findById(role_id)
+                .orElseThrow(
+                        () -> new RoleNotExistException("Role n'existe pas !")
+                );
+        Permission permission = permissionService.getPermissionByName(permissionName);
+        role.getPermissions().add(permission);
+
+        roleRepository.save(role);
+
+        return "Succesfully added";
+
+    }
+
+    //get all role names
+    @Transactional
+    public List<String> findAllRoleNames(){
+        return roleRepository.findAllRoleNames();
+    }
+
+    //search role by name
+    @Transactional
+    public Role findRoleByName(String name){
+        return roleRepository.findByName(name);
+    }
+}

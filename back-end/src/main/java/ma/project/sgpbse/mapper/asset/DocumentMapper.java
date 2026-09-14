@@ -1,0 +1,32 @@
+package ma.project.sgpbse.mapper.asset;
+
+import ma.project.sgpbse.dto.asset.request.DocumentRequestDto;
+import ma.project.sgpbse.dto.asset.response.DocumentResponseDto;
+import ma.project.sgpbse.entity.asset.Document;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+import java.util.List;
+import java.util.Set;
+
+@Mapper(componentModel = "spring")
+public interface DocumentMapper {
+
+    @Mapping(source = "dueDate.endDate", target = "endDate")
+    @Mapping(source = "dueDate.thresholdDays", target = "alertThreshold")
+    DocumentResponseDto toDto(Document document);
+
+    Set<Document> toEntities(
+            Set<DocumentRequestDto> documentRequestDtoSet
+    );
+
+    List<DocumentResponseDto> toDtosList(
+            List<Document> documents
+    );
+
+    Set<DocumentResponseDto> toDtosSet(
+            Set<Document> documents
+    );
+
+    Document toEntity(DocumentRequestDto dto);
+}

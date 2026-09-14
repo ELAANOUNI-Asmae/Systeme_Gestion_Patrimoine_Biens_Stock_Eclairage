@@ -1,0 +1,43 @@
+pipeline {
+    agent any
+
+    environment {
+        SONAR_TOKEN = credentials('sonar-token')
+    }
+
+    stages {
+        stage('Build & Tests avec JaCoCo') {
+            steps {
+                dir('back-end') {
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: 'postgres-db',
+                            usernameVariable: 'DB_USER',
+                            passwordVariable: 'DB_PASSWORD'
+                        ),
+                        string(
+                            credentialsId: 'postgres-db-name',
+                            variable: 'DB_NAME'
+                        )
+                    ]) {
+                        sh '''
+                            chmod +x mvnw
+                            export SPRING_DATASOURCE_URL="jdbc:postgresql://spring_postgres_db:5432/$DB_NAME"
+                            ./mvnw clean test
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir('back-end') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh './mvnw sonar:sonar -Dsonar.token=$SONAR_TOKEN'
+                    }
+                }
+            }
+        }
+    }
+}
