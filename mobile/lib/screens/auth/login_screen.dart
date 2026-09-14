@@ -591,8 +591,10 @@ class _LoginScreenState
                           ),
                         ),
                         child: Text(
-                          '${context.tr('Admin', 'المدير')}: admin@sgpbse.ma / Admin@123\n'
-                          '${context.tr('Agent', 'الموظف')}: agent@sgpbse.ma / Agent@123',
+                          context.tr(
+                            'Accès réservé aux utilisateurs autorisés. Utilisez les identifiants fournis par l’administrateur.',
+                            'الولوج مخصص للمستخدمين المصرح لهم. استخدم بيانات الدخول المقدمة من المسؤول.',
+                          ),
                           style:
                               Theme.of(
                             context,

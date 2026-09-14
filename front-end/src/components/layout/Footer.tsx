@@ -5,6 +5,7 @@ import {
 import {
   useTranslation,
 } from "react-i18next";
+import { Link } from "react-router-dom";
 
 function Footer() {
   const {
@@ -32,23 +33,12 @@ function Footer() {
           )}
         </span>
 
-        <span className="font-semibold text-slate-500 dark:text-slate-400">
-          {t(
-            "footer.developer1",
-          )}
-        </span>
-
-        <span>
-          {t(
-            "footer.and",
-          )}
-        </span>
-
-        <span className="font-semibold text-slate-500 dark:text-slate-400">
-          {t(
-            "footer.developer2",
-          )}
-        </span>
+        <Link
+          to="/team"
+          className="font-semibold text-slate-500 transition-colors hover:text-orange-500 dark:text-slate-400"
+        >
+          {t("footer.developer1")} {t("footer.and")} {t("footer.developer2")}
+        </Link>
 
         <span className="hidden sm:inline">
           •

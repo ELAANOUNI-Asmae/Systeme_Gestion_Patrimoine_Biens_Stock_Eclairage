@@ -82,6 +82,10 @@ const ar = {
 
     demoAccounts:
       "حسابات تجريبية",
+    secureAccess:
+      "ولوج آمن",
+    credentialsNotice:
+      "استخدم بيانات الدخول المقدمة من المسؤول.",
 
     admin: "المدير",
 

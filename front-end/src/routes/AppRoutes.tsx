@@ -117,6 +117,7 @@ import SettingsPage from "../pages/settings/SettingsPage";
 
 import UnauthorizedPage from "../pages/errors/UnauthorizedPage";
 import NotFoundPage from "../pages/errors/NotFoundPage";
+import TeamPage from "../pages/team/TeamPage";
 
 function AppRoutes() {
   return (
@@ -160,6 +161,10 @@ function AppRoutes() {
         <Route
           element={<MainLayout />}
         >
+          <Route
+            path="/team"
+            element={<TeamPage />}
+          />
           {/* ==============================================
               DASHBOARD
           =============================================== */}

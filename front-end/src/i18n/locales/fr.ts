@@ -71,6 +71,9 @@ const fr = {
       "Une erreur est survenue pendant la connexion.",
 
     demoAccounts: "Comptes de démonstration",
+    secureAccess: "Accès sécurisé",
+    credentialsNotice:
+      "Utilisez les identifiants fournis par l’administrateur.",
     admin: "Admin",
     agent: "Agent",
 
@@ -2256,7 +2259,7 @@ const fr = {
         "SARGHINI Fatima-azzahrae",
       and: "&",
       developer2:
-        "EL-ANNOUNI Asmae",
+        "ELAANOUNI Asmae",
     },
 };
 
