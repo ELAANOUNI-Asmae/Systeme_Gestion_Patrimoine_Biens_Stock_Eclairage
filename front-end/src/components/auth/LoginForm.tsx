@@ -333,23 +333,11 @@ function LoginForm() {
 
       <div className="rounded-xl border border-orange-100 bg-orange-50 p-3 text-xs text-slate-600 dark:border-orange-900/40 dark:bg-orange-950/20 dark:text-slate-300">
         <p className="font-semibold text-slate-700 dark:text-slate-200">
-          {t(
-            "auth.demoAccounts",
-          )}
+          {t("auth.secureAccess")}
         </p>
 
         <p className="mt-2">
-          {t("auth.admin")} :
-          {" "}
-          admin@sgpbse.ma /
-          Admin@123
-        </p>
-
-        <p className="mt-1">
-          {t("auth.agent")} :
-          {" "}
-          agent@sgpbse.ma /
-          Agent@123
+          {t("auth.credentialsNotice")}
         </p>
       </div>
     </form>
