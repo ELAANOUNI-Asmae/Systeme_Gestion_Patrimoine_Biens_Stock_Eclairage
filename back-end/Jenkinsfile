@@ -9,8 +9,23 @@ pipeline {
         stage('Build & Tests avec JaCoCo') {
             steps {
                 dir('back-end') {
-                    sh 'chmod +x mvnw'
-                    sh './mvnw clean test'
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: 'postgres-db',
+                            usernameVariable: 'DB_USER',
+                            passwordVariable: 'DB_PASSWORD'
+                        ),
+                        string(
+                            credentialsId: 'postgres-db-name',
+                            variable: 'DB_NAME'
+                        )
+                    ]) {
+                        sh '''
+                            chmod +x mvnw
+                            export SPRING_DATASOURCE_URL="jdbc:postgresql://spring_postgres_db:5432/$DB_NAME"
+                            ./mvnw clean test
+                        '''
+                    }
                 }
             }
         }
