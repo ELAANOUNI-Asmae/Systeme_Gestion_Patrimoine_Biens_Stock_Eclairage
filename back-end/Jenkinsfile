@@ -1,5 +1,4 @@
 pipeline {
-    // On dit à Jenkins de s'exécuter directement sur lui-même
     agent any
 
     environment {
@@ -7,28 +6,20 @@ pipeline {
     }
 
     stages {
-        stage('Checkout Git via SSH') {
-            steps {
-                git credentialsId: 'github-ssh-key',
-                    url: 'git@github.com:ELAANOUNI-Asmae/Systeme_Gestion_Patrimoine_Biens_Stock_Eclairage.git',
-                    branch: 'master'
-            }
-        }
-
         stage('Build & Tests avec JaCoCo') {
             steps {
-                sh 'chmod +x mvnw'
-                // Exécution directe de Maven sur le conteneur Jenkins
-                sh 'mvn clean test'
+                dir('back-end') {
+                    sh 'chmod +x mvnw'
+                    sh './mvnw clean test'
+                }
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    // On utilise withCredentials pour cacher le token des logs
-                    withCredentials([string(credentialsId: 'sonar-token', variable: 'TOKEN')]) {
-                    sh "./mvnw sonar:sonar -Dsonar.login=${SONAR_TOKEN}"
+                dir('back-end') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh './mvnw sonar:sonar -Dsonar.token=$SONAR_TOKEN'
                     }
                 }
             }
